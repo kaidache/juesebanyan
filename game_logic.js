@@ -1,4 +1,4 @@
-// game_logic.js
+// game_logic.js (已修复)
 
 const GameApp = {
     state: {
@@ -277,6 +277,8 @@ const GameApp = {
                 if (statusBarContent) {
                     GameApp.ui.updateStatusBar(statusBarContent, aiMessageId);
                 }
+                
+                // Do not await this, let it run in the background
                 this.triggerSummaryCheck();
 
             } catch (error) {
@@ -319,74 +321,78 @@ const GameApp = {
         },
 
         async performSummary(historyToSummarize, startTurn, endTurn) {
-             const mainApiKey = localStorage.getItem('apiKey') || '';
-             const mainBaseUrl = localStorage.getItem('apiBaseUrl') || '';
-             const mainModel = localStorage.getItem('apiModel') || 'gpt-3.5-turbo';
-
-             const summaryApiKey = GameApp.state.summarySettings.apiKey || mainApiKey;
-             const summaryBaseUrl = GameApp.state.summarySettings.baseUrl || mainBaseUrl;
-             const summaryModel = GameApp.state.summarySettings.model || mainModel;
-             
-             if (!summaryApiKey || !summaryModel) {
-                  GameApp.ui.showSystemMessage({ text: `总结失败：第 ${startTurn + 1} 至 ${endTurn} 层未配置API Key或模型。`, type: "system-message summary-notification error" });
-                  return;
-             }
-
-             const summaryProvider = summaryModel.toLowerCase().includes('gemini') ? 'google' : 'openai';
-             const adapter = apiHandler.getAdapter(summaryProvider);
- 
-             const dialogueText = historyToSummarize.map(m => `${m.role === 'user' ? '玩家' : 'AI'}: ${this.removeStatusBarFromMainContent(m.content)}`).join('\n\n');
-             
-             const systemPromptForSummary = GameApp.state.currentSummaryPromptText;
-             const contentToSummarize = `[需要总结的对话内容如下:]\n${dialogueText}`;
-             
-             let messagesForSummary;
-             let finalSystemPromptForSummary = null;
-
-             if (summaryProvider === 'google') {
-                 messagesForSummary = [{ role: 'user', content: contentToSummarize }];
-                 finalSystemPromptForSummary = systemPromptForSummary;
-             } else {
-                  messagesForSummary = [
-                      { role: 'system', content: systemPromptForSummary },
-                      { role: 'user', content: contentToSummarize }
-                  ];
-             }
-
-             GameApp.state.isSummarizing = true;
-             GameApp.state.summaryAbortController = new AbortController();
-             try {
-                 const summaryText = await adapter.chat({
-                     apiKey: summaryApiKey,
-                     baseUrl: summaryBaseUrl,
-                     model: summaryModel,
-                     messages: messagesForSummary,
-                     systemPrompt: finalSystemPromptForSummary,
-                     abortSignal: GameApp.state.summaryAbortController.signal,
-                     stream: false,
-                 });
-
-                 GameApp.state.summarizedUntilTurnCount = endTurn;
-                 localStorage.setItem('summarizedUntilTurnCount', GameApp.state.summarizedUntilTurnCount.toString());
-
-                 if (summaryText && summaryText.trim() !== "") {
-                    GameApp.state.accumulatedSummaryContent += (GameApp.state.accumulatedSummaryContent ? "\n\n" : "") + summaryText;
-                    localStorage.setItem('accumulatedSummaryContent', GameApp.state.accumulatedSummaryContent);
-                    GameApp.ui.updateSummaryContentDisplay(GameApp.state.accumulatedSummaryContent);
-                    GameApp.ui.showSystemMessage({ text: `第 ${startTurn + 1} 至 ${endTurn} 层的内容已成功总结并更新。`, type: "system-message summary-notification" });
-                 } else {
-                    console.log(`后台总结完成，但模型返回内容为空。已将总结进度更新至第 ${endTurn} 层。`);
-                    GameApp.ui.showSystemMessage({ text: `第 ${startTurn + 1} 至 ${endTurn} 层内容已处理，但无实质内容更新。`, type: "system-message summary-notification" });
-                 }
-
-            } catch (error) {
-                 console.error("总结错误:", error);
-                 GameApp.ui.showSystemMessage({ text: `后台自动总结第 ${startTurn + 1} 至 ${endTurn} 层失败(模型: ${summaryModel}): ${error.message}`, type: "system-message summary-notification error" });
-            } finally {
-                 GameApp.state.summaryAbortController = null;
-                 GameApp.state.isSummarizing = false;
-            }
-        },
+            GameApp.state.isSummarizing = true;
+            GameApp.state.summaryAbortController = new AbortController();
+        
+            try {
+                const mainApiKey = localStorage.getItem('apiKey') || '';
+                const mainBaseUrl = localStorage.getItem('apiBaseUrl') || '';
+                const mainModel = localStorage.getItem('apiModel') || 'gpt-3.5-turbo';
+        
+                const summaryApiKey = GameApp.state.summarySettings.apiKey || mainApiKey;
+                const summaryBaseUrl = GameApp.state.summarySettings.baseUrl || mainBaseUrl;
+                const summaryModel = GameApp.state.summarySettings.model || mainModel;
+        
+                if (!summaryApiKey || !summaryModel) {
+                    GameApp.ui.showSystemMessage({ text: `总结失败：第 ${startTurn + 1} 至 ${endTurn} 层未配置API Key或模型。`, type: "system-message summary-notification error" });
+                    // This return is now safe because the finally block will execute.
+                    return; 
+                }
+        
+                const summaryProvider = summaryModel.toLowerCase().includes('gemini') ? 'google' : 'openai';
+                const adapter = apiHandler.getAdapter(summaryProvider);
+        
+                const dialogueText = historyToSummarize.map(m => `${m.role === 'user' ? '玩家' : 'AI'}: ${this.removeStatusBarFromMainContent(m.content)}`).join('\n\n');
+                
+                const systemPromptForSummary = GameApp.state.currentSummaryPromptText;
+                const contentToSummarize = `[需要总结的对话内容如下:]\n${dialogueText}`;
+                
+                let messagesForSummary;
+                let finalSystemPromptForSummary = null;
+        
+                if (summaryProvider === 'google') {
+                    messagesForSummary = [{ role: 'user', content: contentToSummarize }];
+                    finalSystemPromptForSummary = systemPromptForSummary;
+                } else {
+                    messagesForSummary = [
+                        { role: 'system', content: systemPromptForSummary },
+                        { role: 'user', content: contentToSummarize }
+                    ];
+                }
+        
+                const summaryText = await adapter.chat({
+                    apiKey: summaryApiKey,
+                    baseUrl: summaryBaseUrl,
+                    model: summaryModel,
+                    messages: messagesForSummary,
+                    systemPrompt: finalSystemPromptForSummary,
+                    abortSignal: GameApp.state.summaryAbortController.signal,
+                    stream: false,
+                });
+        
+                GameApp.state.summarizedUntilTurnCount = endTurn;
+                localStorage.setItem('summarizedUntilTurnCount', GameApp.state.summarizedUntilTurnCount.toString());
+        
+                if (summaryText && summaryText.trim() !== "") {
+                   GameApp.state.accumulatedSummaryContent += (GameApp.state.accumulatedSummaryContent ? "\n\n" : "") + summaryText;
+                   localStorage.setItem('accumulatedSummaryContent', GameApp.state.accumulatedSummaryContent);
+                   GameApp.ui.updateSummaryContentDisplay(GameApp.state.accumulatedSummaryContent);
+                   GameApp.ui.showSystemMessage({ text: `第 ${startTurn + 1} 至 ${endTurn} 层的内容已成功总结并更新。`, type: "system-message summary-notification" });
+                } else {
+                   console.log(`后台总结完成，但模型返回内容为空。已将总结进度更新至第 ${endTurn} 层。`);
+                   GameApp.ui.showSystemMessage({ text: `第 ${startTurn + 1} 至 ${endTurn} 层内容已处理，但无实质内容更新。`, type: "system-message summary-notification" });
+                }
+        
+           } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error("总结错误:", error);
+                    GameApp.ui.showSystemMessage({ text: `后台自动总结第 ${startTurn + 1} 至 ${endTurn} 层失败(模型: ${localStorage.getItem('summaryApiModel')}): ${error.message}`, type: "system-message summary-notification error" });
+                }
+           } finally {
+                GameApp.state.summaryAbortController = null;
+                GameApp.state.isSummarizing = false; // This is now guaranteed to run
+           }
+       },
         
         saveAiMessageEdit(messageId, newText) {
             const msgIndex = GameApp.state.conversationHistory.findIndex(msg => msg.id === messageId && msg.role === 'assistant');
