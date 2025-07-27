@@ -275,23 +275,27 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!textSpan) return;
         
             const messageId = parseInt(bubble.dataset.messageId, 10);
-            const startTag = '<status-bar>';
-            const endTag = '</status-bar>';
+            const tag = '```';
         
             let mainContent = text;
-            const startTagIndex = text.lastIndexOf(startTag);
+            
+            const matches = [...text.matchAll(/```([\s\S]*?)```/g)];
         
-            if (startTagIndex !== -1) {
-                const endTagIndex = text.indexOf(endTag, startTagIndex);
-        
-                if (endTagIndex !== -1) {
-                    const statusBarContent = text.substring(startTagIndex + startTag.length, endTagIndex).trim();
-                    const fullBlock = text.substring(startTagIndex, endTagIndex + endTag.length);
-                    
-                    mainContent = text.replace(fullBlock, '').trim();
-                    ui.updateStatusBar(statusBarContent, messageId);
-                } else {
-                    mainContent = text.substring(0, startTagIndex).trim();
+            if (matches.length > 0) {
+                const lastMatch = matches[matches.length - 1];
+                const statusBarContent = lastMatch[1].trim();
+                const fullBlock = lastMatch[0];
+                
+                mainContent = text.replace(fullBlock, '').trim();
+                
+                ui.updateStatusBar(statusBarContent, messageId);
+            } else {
+                const lastTagIndex = text.lastIndexOf(tag);
+                if (lastTagIndex > -1) {
+                    const secondToLastTagIndex = text.lastIndexOf(tag, lastTagIndex - 1);
+                    if (secondToLastTagIndex === -1) {
+                         mainContent = text.substring(0, lastTagIndex).trim();
+                    }
                 }
             }
         
@@ -616,10 +620,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         bindEventListeners();
-        
-        ui.toggleProviderSettings();
-
-        ui.autoResizeTextarea(E.playerInput);
     };
 
     initializeApp();

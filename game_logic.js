@@ -43,7 +43,6 @@ const GameApp = {
             } else {
                 localStorage.removeItem('savedConversationHistory');
             }
-            console.log('对话历史已即时保存到 localStorage');
         },
 
         initialize() {
@@ -67,12 +66,10 @@ const GameApp = {
                 const savedHistory = localStorage.getItem('savedConversationHistory');
                 if (savedHistory) {
                     state.conversationHistory = JSON.parse(savedHistory);
-                    console.log('已恢复保存的对话历史');
                     
                     if (state.conversationHistory.length > 0) {
                         const maxId = Math.max(...state.conversationHistory.map(m => m.id || 0));
                         state.messageIdCounter = maxId + 1;
-                        console.log(`Message ID counter has been set to ${state.messageIdCounter}`);
                     }
                 }
             } catch (e) {
@@ -93,24 +90,19 @@ const GameApp = {
             localStorage.removeItem('savedConversationHistory');
             localStorage.removeItem('accumulatedSummaryContent');
             localStorage.removeItem('summarizedUntilTurnCount');
-            
-            console.log('All history and summary data cleared.');
         },
 
         generateMessageId: () => GameApp.state.messageIdCounter++,
         
-        extractStatusBarContent: (text) => text.match(/<status-bar>([\s\S]*?)<\/status-bar>/)?.[1].trim() || null,
+        extractStatusBarContent: (text) => text.match(/```([\s\S]*?)```/)?.[1].trim() || null,
         
-        removeStatusBarFromMainContent: (text) => text.replace(/<status-bar>[\s\S]*?<\/status-bar>\s*/, '').trim(),
+        removeStatusBarFromMainContent: (text) => text.replace(/```[\s\S]*?```\s*/, '').trim(),
 
         checkAndCleanHistory() {
             if (GameApp.state.conversationHistory.length > 1000) {
                 GameApp.state.conversationHistory = GameApp.state.conversationHistory.slice(-500);
                 const oldSummarizedCount = GameApp.state.summarizedUntilTurnCount;
                 GameApp.state.summarizedUntilTurnCount = Math.max(0, oldSummarizedCount - 500);
-                if (oldSummarizedCount > GameApp.state.summarizedUntilTurnCount) {
-                    console.warn(`History cleaned. Summary count adjusted from ${oldSummarizedCount} to ${GameApp.state.summarizedUntilTurnCount}.`);
-                }
                 this.saveHistoryToLocalStorage();
                 GameApp.ui.showSystemMessage({ text: "为了保持性能，已自动清理较早的对话记录。", type: "system-message warning" });
             }
@@ -179,7 +171,7 @@ const GameApp = {
                 let indexOfLastValidStatusBar = -1;
                 for (let i = recentHistory.length - 1; i >= 0; i--) {
                     const msg = recentHistory[i];
-                    if (msg.role === 'assistant' && msg.content && msg.content.includes('<status-bar>')) {
+                    if (msg.role === 'assistant' && msg.content && msg.content.includes('```')) {
                         indexOfLastValidStatusBar = i;
                         break; 
                     }
@@ -207,7 +199,6 @@ const GameApp = {
                         if (finalHistoryForApi[i].role === 'user') {
                             let originalContent = finalHistoryForApi[i].content;
                             finalHistoryForApi[i].content = `${prefix}${originalContent}${postfix}`;
-                            console.log("Applied prefix/postfix to the last user message for API call.");
                             break; 
                         }
                     }
