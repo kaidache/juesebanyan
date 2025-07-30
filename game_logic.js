@@ -31,7 +31,7 @@ const GameApp = {
     config: {
         defaultPlayerAvatar: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%23607D8B" style="stroke:%23CFD8DC; stroke-width:3px;"/><text x="50" y="65" font-family="Arial" font-size="40" fill="white" text-anchor="middle">U</text></svg>',
         defaultAiAvatar: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" fill="%234A90E2" style="stroke:%23B0C4DE; stroke-width:3px;"/><text x="50" y="65" font-family="Arial" font-size="40" fill="white" text-anchor="middle">AI</text></svg>',
-        defaultSummaryPrompt: "请你扮演一个剧情缩写助手。以下是一段对话记录，请你对其进行简洁、客观的剧情缩写，以便于后续的AI能够快速理解之前的背景。请直接输出缩写内容，不要有任何开场白或额外说明。",
+        defaultSummaryPrompt: "请你扮演一个剧情缩写助手。以下是一段剧情，请你对其进行简洁、客观的剧情缩写，以便于后续的AI能够快速理解之前的背景。用具体的，直白而准确的词汇来描述剧情的经过。请直接输出缩写内容，不要有任何开场白或额外说明。",
     },
 
     logic: {

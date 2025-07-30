@@ -1,4 +1,4 @@
-// api_handler.js
+// api_handler.js (已修复)
 
 class ApiError extends Error {
     constructor(message, status) {
@@ -255,20 +255,46 @@ const googleGeminiAdapter = {
         }
     },
 
+    // --- 【已修复】---
     async getModels(apiKey) {
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
-            const response = await fetch(url);
-            if (!response.ok) {
-                throw new Error('Failed to fetch from API, using static list.');
-            }
-            const data = await response.json();
-            
-            return (data.models || [])
-                .filter(m => m.supportedGenerationMethods.includes("generateContent"))
+            let allModels = [];
+            let nextPageToken = '';
+            const baseUrl = 'https://generativelanguage.googleapis.com/v1beta/models';
+    
+            // 使用 do-while 循环来处理分页
+            do {
+                // 构建带分页标记的 URL
+                const url = `${baseUrl}?key=${apiKey}&pageSize=100${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    // 尝试解析错误信息以提供更具体的反馈
+                    const errorData = await response.json().catch(() => ({}));
+                    const errorMessage = errorData.error?.message || `HTTP Error: ${response.status}`;
+                    throw new Error(`Failed to fetch models page: ${errorMessage}`);
+                }
+    
+                const data = await response.json();
+    
+                if (data.models && data.models.length > 0) {
+                    // 将当前页的模型追加到总列表中
+                    allModels.push(...data.models);
+                }
+    
+                // 获取下一页的 token，如果不存在则循环结束
+                nextPageToken = data.nextPageToken;
+    
+            } while (nextPageToken);
+    
+            // 在获取了所有模型后，再进行筛选和格式化
+            return allModels
+                .filter(m => m.supportedGenerationMethods && m.supportedGenerationMethods.includes("generateContent"))
                 .map(m => ({ id: m.name.replace('models/', '') }));
+    
         } catch (error) {
-            console.warn(error.message);
+            console.warn('Error fetching Google models, falling back to static list:', error.message);
+            // 保留原始的备用方案，以防 API 完全不可用
             return Promise.resolve([
                 { id: 'gemini-1.5-pro-latest' },
                 { id: 'gemini-1.5-flash-latest' },
