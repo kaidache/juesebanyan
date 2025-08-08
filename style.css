@@ -861,34 +861,7 @@ input[type="range"]:hover::-moz-range-thumb {
 
 /* Responsive Adjustments */
 /* 【已修改】优化移动端布局核心逻辑 */
-@media (max-width: 900px) {
-    .game-main-interface {
-        flex-direction: column;
-        gap: 15px;
-        margin-bottom: 15px;
-        min-height: 0; /* Allow flex item to shrink */
-    }
-    .status-bar-area {
-        width: 100%;
-        height: 150px; /* Fixed height for status bar */
-        flex-shrink: 0; /* Prevent it from shrinking */
-    }
-    .dialogue-area {
-        flex-grow: 1; /* Dialogue area takes all remaining space */
-        min-height: 0; /* Allow flex item to shrink, was 250px */
-    }
-    .game-title-header h1 { font-size: 2em; }
-    .modal-content { width: 95%; margin: 5% auto; max-height: 90vh; }
-    
-    .avatar-edit-body {
-        flex-direction: column;
-    }
-    .avatar-section-divider {
-        width: 100%;
-        height: 1px;
-        margin: 15px 0;
-    }
-}
+
 
 /* 【已修改】进一步优化小屏幕体验 */
 @media (max-width: 600px) {
@@ -943,4 +916,15 @@ input[type="range"]:hover::-moz-range-thumb {
     text-align: left;
     background-color: rgba(76, 175, 80, 0.08);
     font-style: normal;
+}
+
+@media (max-width: 900px) {
+    .status-bar-area.status-bar-collapsed {
+        height: auto !important;
+        padding: 0;
+    }
+    .status-bar-area.status-bar-collapsed .status-bar-toggle {
+        width: 100%;
+        padding: 8px 10px;
+    }
 }

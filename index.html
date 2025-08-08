@@ -6,7 +6,7 @@
     <title>对话冒险游戏</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* 新增样式：状态栏折叠控制 */
+        /* 折叠按钮样式 */
         .status-bar-toggle {
             background-color: var(--panel-bg);
             color: var(--accent-color);
@@ -15,10 +15,12 @@
             font-size: 0.85em;
             cursor: pointer;
             text-align: left;
+            width: 100%;
         }
         .status-bar-toggle:hover {
             background-color: var(--border-color);
         }
+        /* 折叠状态隐藏内容 */
         .status-bar-collapsed .status-bar-content {
             display: none;
         }
@@ -43,7 +45,7 @@
                 </main>
             </div>
 
-            <div class="status-bar-area status-bar-collapsed" id="statusBarArea">
+            <div class="status-bar-area" id="statusBarArea">
                 <button class="status-bar-toggle" id="statusBarToggleBtn">➕ 显示状态栏</button>
                 <pre id="statusBar" class="status-bar-content">游戏尚未开始或无状态信息。</pre>
             </div>
@@ -61,7 +63,7 @@
         </div>
     </div>
     
-    <!-- 保持原有的设置面板和头像编辑面板不变 -->
+    <!-- 设置面板 -->
     <div id="settingsModal" class="modal">
         <div class="modal-content">
             <header class="modal-header">
@@ -69,6 +71,7 @@
                 <span id="closeSettingsModalBtn" class="close-modal-btn">&times;</span>
             </header>
             <div class="modal-body">
+
                 <div class="settings-tabs">
                     <button class="tab-button active" data-tab="tab-api-prompt">核心设置</button>
                     <button class="tab-button" data-tab="tab-summary">总结设置</button>
@@ -136,17 +139,17 @@
 
                     <div class="form-group">
                         <label for="systemPromptTextareaModal">游戏核心提示词 (System Prompt):</label>
-                        <textarea id="systemPromptTextareaModal" rows="8" placeholder="在这里输入你的游戏世界观、规则、AI扮演的角色等核心设定..."></textarea>
+                        <textarea id="systemPromptTextareaModal" rows="8"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="prefixTextareaModal">前置 (Prefix):</label>
-                        <textarea id="prefixTextareaModal" rows="4" placeholder="自动添加到你每次发送内容的最前面"></textarea>
+                        <textarea id="prefixTextareaModal" rows="4"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="postfixTextareaModal">后置 (Postfix):</label>
-                        <textarea id="postfixTextareaModal" rows="4" placeholder="自动添加到你每次发送内容的最后面"></textarea>
+                        <textarea id="postfixTextareaModal" rows="4"></textarea>
                     </div>
                     
                     <button id="savePromptFromModalBtn" class="btn btn-primary">保存提示词与前后置</button>
@@ -154,18 +157,17 @@
                 
                 <div id="tab-summary" class="settings-tab-content">
                     <h3>对话总结功能设置</h3>
-                    <p class="info-text">当对话层数超出记忆设置时，自动总结早期对话为背景。</p>
                     <div class="form-group">
                         <label for="summaryApiKey">总结用 API Key:</label>
-                        <input type="password" id="summaryApiKey" placeholder="可选">
+                        <input type="password" id="summaryApiKey">
                     </div>
                     <div class="form-group">
                         <label for="summaryApiBaseUrl">总结用 Base URL:</label>
-                        <input type="text" id="summaryApiBaseUrl" placeholder="可选">
+                        <input type="text" id="summaryApiBaseUrl">
                     </div>
                     <div class="form-group">
                         <label for="summaryApiModel">总结用模型:</label>
-                        <input type="text" id="summaryApiModel" placeholder="推荐使用速度快、便宜的模型">
+                        <input type="text" id="summaryApiModel">
                     </div>
                     <div id="summaryModelListDisplay" class="model-list-display-area">点击下方按钮获取...</div>
                     <button id="getSummaryModelsBtn" class="btn btn-small">获取模型列表</button>
@@ -180,12 +182,12 @@
                         <textarea id="summaryContentDisplay" rows="8"></textarea>
                     </div>
                     <button id="saveSummarySettingsBtn" class="btn btn-primary">保存总结设置</button>
-                    <span id="summarySettingsStatus" class="status-message"></span>
                 </div>
             </div>
         </div>
     </div>
 
+    <!-- 头像编辑面板 -->
     <div id="avatarEditModal" class="modal">
         <div class="modal-content">
             <header class="modal-header">
@@ -196,11 +198,11 @@
                 <div class="avatar-edit-section">
                     <h4>玩家头像</h4>
                     <div class="avatar-preview-container">
-                         <img id="playerAvatarPreview" class="avatar-preview-image" alt="Player Avatar Preview">
+                         <img id="playerAvatarPreview" class="avatar-preview-image">
                     </div>
                     <div class="form-group">
                         <label for="playerAvatarUrlInput">图片 URL:</label>
-                        <input type="text" id="playerAvatarUrlInput" placeholder="输入图片链接">
+                        <input type="text" id="playerAvatarUrlInput">
                     </div>
                     <div class="form-group">
                          <label for="playerAvatarFileInput">或上传文件:</label>
@@ -211,11 +213,11 @@
                 <div class="avatar-edit-section">
                     <h4>AI 头像</h4>
                      <div class="avatar-preview-container">
-                        <img id="aiAvatarPreview" class="avatar-preview-image" alt="AI Avatar Preview">
+                        <img id="aiAvatarPreview" class="avatar-preview-image">
                     </div>
                      <div class="form-group">
                         <label for="aiAvatarUrlInput">图片 URL:</label>
-                        <input type="text" id="aiAvatarUrlInput" placeholder="输入图片链接">
+                        <input type="text" id="aiAvatarUrlInput">
                     </div>
                     <div class="form-group">
                         <label for="aiAvatarFileInput">或上传文件:</label>
@@ -224,7 +226,6 @@
                 </div>
             </div>
             <footer class="avatar-modal-actions">
-                <span id="avatarEditStatus" class="status-message"></span>
                 <button id="resetAvatarsBtn" class="btn btn-secondary">恢复默认</button>
                 <button id="saveAvatarsBtn" class="btn btn-primary">保存头像</button>
             </footer>
@@ -236,7 +237,7 @@
     <script src="ui_handlers.js"></script>
 
     <script>
-        // 折叠按钮逻辑
+        // 状态栏折叠/展开逻辑
         document.addEventListener('DOMContentLoaded', function(){
             const statusBarArea = document.getElementById('statusBarArea');
             const toggleBtn = document.getElementById('statusBarToggleBtn');
@@ -244,11 +245,9 @@
             
             function updateInitialState(){
                 if(mq.matches){
-                    // 小屏 默认折叠
                     statusBarArea.classList.add('status-bar-collapsed');
                     toggleBtn.textContent = "➕ 显示状态栏";
                 }else{
-                    // 大屏 默认展开
                     statusBarArea.classList.remove('status-bar-collapsed');
                     toggleBtn.textContent = "➖ 收起状态栏";
                 }
