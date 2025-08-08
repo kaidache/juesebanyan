@@ -5,6 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>对话冒险游戏</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* 新增样式：状态栏折叠控制 */
+        .status-bar-toggle {
+            background-color: var(--panel-bg);
+            color: var(--accent-color);
+            border: none;
+            padding: 6px 10px;
+            font-size: 0.85em;
+            cursor: pointer;
+            text-align: left;
+        }
+        .status-bar-toggle:hover {
+            background-color: var(--border-color);
+        }
+        .status-bar-collapsed .status-bar-content {
+            display: none;
+        }
+    </style>
 </head>
 <body>
 
@@ -25,8 +43,8 @@
                 </main>
             </div>
 
-            <div class="status-bar-area">
-                <h2 class="status-bar-title">状态栏</h2>
+            <div class="status-bar-area status-bar-collapsed" id="statusBarArea">
+                <button class="status-bar-toggle" id="statusBarToggleBtn">➕ 显示状态栏</button>
                 <pre id="statusBar" class="status-bar-content">游戏尚未开始或无状态信息。</pre>
             </div>
         </div>
@@ -43,6 +61,7 @@
         </div>
     </div>
     
+    <!-- 保持原有的设置面板和头像编辑面板不变 -->
     <div id="settingsModal" class="modal">
         <div class="modal-content">
             <header class="modal-header">
@@ -122,12 +141,12 @@
 
                     <div class="form-group">
                         <label for="prefixTextareaModal">前置 (Prefix):</label>
-                        <textarea id="prefixTextareaModal" rows="4" placeholder="此处内容会【自动添加】到你每次发送内容的【最前面】。可用于固定指令或格式要求，但不会保存到对话历史中。"></textarea>
+                        <textarea id="prefixTextareaModal" rows="4" placeholder="自动添加到你每次发送内容的最前面"></textarea>
                     </div>
 
                     <div class="form-group">
                         <label for="postfixTextareaModal">后置 (Postfix):</label>
-                        <textarea id="postfixTextareaModal" rows="4" placeholder="此处内容会【自动添加】到你每次发送内容的【最后面】。可用于固定结尾或格式要求，但不会保存到对话历史中。"></textarea>
+                        <textarea id="postfixTextareaModal" rows="4" placeholder="自动添加到你每次发送内容的最后面"></textarea>
                     </div>
                     
                     <button id="savePromptFromModalBtn" class="btn btn-primary">保存提示词与前后置</button>
@@ -135,14 +154,14 @@
                 
                 <div id="tab-summary" class="settings-tab-content">
                     <h3>对话总结功能设置</h3>
-                    <p class="info-text">当对话层数超出所设定的记忆力内容时，此功能会自动在后台调用AI，将早期对话总结为背景信息，以节约Token并保持记忆连贯。可使用与主聊天不同的模型或API Key。</p>
+                    <p class="info-text">当对话层数超出记忆设置时，自动总结早期对话为背景。</p>
                     <div class="form-group">
                         <label for="summaryApiKey">总结用 API Key:</label>
-                        <input type="password" id="summaryApiKey" placeholder="可选，留空则使用核心设置的Key">
+                        <input type="password" id="summaryApiKey" placeholder="可选">
                     </div>
                     <div class="form-group">
                         <label for="summaryApiBaseUrl">总结用 Base URL:</label>
-                        <input type="text" id="summaryApiBaseUrl" placeholder="可选，留空则使用核心设置的URL">
+                        <input type="text" id="summaryApiBaseUrl" placeholder="可选">
                     </div>
                     <div class="form-group">
                         <label for="summaryApiModel">总结用模型:</label>
@@ -158,7 +177,7 @@
                     <hr>
                     <div class="form-group">
                         <label for="summaryContentDisplay">当前背景总结内容 (可编辑):</label>
-                        <textarea id="summaryContentDisplay" rows="8" placeholder="自动生成的背景总结会显示在这里。你也可以手动编辑。"></textarea>
+                        <textarea id="summaryContentDisplay" rows="8"></textarea>
                     </div>
                     <button id="saveSummarySettingsBtn" class="btn btn-primary">保存总结设置</button>
                     <span id="summarySettingsStatus" class="status-message"></span>
@@ -215,6 +234,37 @@
     <script src="api_handler.js"></script>
     <script src="game_logic.js"></script>
     <script src="ui_handlers.js"></script>
-    
+
+    <script>
+        // 折叠按钮逻辑
+        document.addEventListener('DOMContentLoaded', function(){
+            const statusBarArea = document.getElementById('statusBarArea');
+            const toggleBtn = document.getElementById('statusBarToggleBtn');
+            const mq = window.matchMedia("(max-width: 900px)");
+            
+            function updateInitialState(){
+                if(mq.matches){
+                    // 小屏 默认折叠
+                    statusBarArea.classList.add('status-bar-collapsed');
+                    toggleBtn.textContent = "➕ 显示状态栏";
+                }else{
+                    // 大屏 默认展开
+                    statusBarArea.classList.remove('status-bar-collapsed');
+                    toggleBtn.textContent = "➖ 收起状态栏";
+                }
+            }
+            updateInitialState();
+            mq.addEventListener('change', updateInitialState);
+
+            toggleBtn.addEventListener('click', function(){
+                statusBarArea.classList.toggle('status-bar-collapsed');
+                if(statusBarArea.classList.contains('status-bar-collapsed')){
+                    toggleBtn.textContent = "➕ 显示状态栏";
+                }else{
+                    toggleBtn.textContent = "➖ 收起状态栏";
+                }
+            });
+        });
+    </script>
 </body>
 </html>
