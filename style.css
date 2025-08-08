@@ -875,17 +875,24 @@ input[type="range"]:hover::-moz-range-thumb {
     .game-main-interface {
         flex-direction: column;
     }
+
     .status-bar-area {
         width: 100% !important;
-        max-height: 40vh;
+        max-height: 40vh; /* 展开时最大高度 */
         order: -1;
     }
+
+    /* 折叠时只隐藏内容，不隐藏按钮 */
     .status-bar-area.status-bar-collapsed {
-        max-height: 0 !important;
-        overflow: hidden;
+        max-height: none !important;
+        overflow: visible;
         padding: 0 !important;
         border: none;
     }
+    .status-bar-area.status-bar-collapsed .status-bar-content {
+        display: none;
+    }
+
     .status-bar-toggle {
         width: 100%;
         padding: 8px 10px;
