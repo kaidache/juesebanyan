@@ -145,7 +145,7 @@ body {
     overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 20px; /* 【修改】增加了气泡间的垂直间距 */
 }
 
 
@@ -217,23 +217,14 @@ body {
     overflow-y: auto;
 }
 
-/* Message Bubbles - General */
-.message-bubble {
-    display: flex;
-    gap: 10px; /* Gap between avatar and content */
-    max-width: 85%;
-    position: relative;
-    align-items: flex-start; /* Align items to the top */
-}
+/* --- 【核心修改区域开始】 --- */
 
-/* Avatar Section and Meta (Floor Number) */
-.avatar-section {
-    flex-shrink: 0;
-    display: flex;
+/* Message Bubbles - General Container */
+.message-bubble {
+    max-width: 90%; /* 气泡最大宽度 */
+    position: relative;
+    display: flex; /* 【修改】改为flex布局，方向为纵向 */
     flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    width: var(--avatar-size); /* Give avatar section a fixed width */
 }
 
 .avatar-image {
@@ -243,27 +234,41 @@ body {
     object-fit: cover;
     background-color: var(--border-color);
     border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
 }
 
-.message-meta { /* This is now only for the floor number below avatar */
-    font-size: 0.7em;
+/* 【新增】消息头部，用于容纳头像、名字等信息 */
+.message-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px; /* 头部和气泡内容的间距 */
+}
+
+/* 【新增】角色名字样式 */
+.character-name {
+    font-weight: bold;
+    font-size: 0.9em;
     color: var(--text-color-muted);
-    text-align: center;
-    line-height: 1; /* Ensure it doesn't take too much vertical space */
 }
+
+/* 【修改】楼层数现在是头部的一部分 */
 .floor-number {
-    display: block;
+    font-size: 0.8em;
+    color: var(--text-color-muted);
+    margin-left: 4px;
 }
+
 
 .message-content-wrapper {
-    flex-grow: 1;
+    width: 100%; /* 【修改】内容区域占满容器宽度 */
     padding: 10px 15px;
-    border-radius: 10px;
+    border-radius: 10px; /* 【修改】统一圆角 */
     box-shadow: var(--shadow-light);
     line-height: 1.5;
-    font-size: 1em; /* Increased default font size slightly for readability */
+    font-size: 1em; 
     word-wrap: break-word;
-    min-width: 0; /* Fix for flex item overflow */
+    min-width: 0;
     display: flex; 
     flex-direction: column; 
 }
@@ -303,28 +308,26 @@ body {
 
 /* Player Message Specifics */
 .message-bubble.player-message {
-    align-self: flex-end;
-    flex-direction: row-reverse; 
-    margin-left: 15%;
+    align-self: flex-end; /* 【修改】整个气泡容器靠右 */
+}
+.message-bubble.player-message .message-header {
+    flex-direction: row-reverse; /* 【修改】让头像在名字右边，实现视觉上的靠右对齐 */
 }
 .message-bubble.player-message .message-content-wrapper {
     background-color: var(--player-message-bg);
     color: var(--secondary-color);
-    border-bottom-right-radius: var(--border-radius-small);
-    text-align: left; /* Keep text left-aligned for readability, bubble is right-aligned */
 }
 
 /* AI Message Specifics */
 .message-bubble.ai-message {
-    align-self: flex-start;
-    flex-direction: row; 
-    margin-right: 15%;
+    align-self: flex-start; /* 【修改】整个气泡容器靠左 */
 }
 .message-bubble.ai-message .message-content-wrapper {
     background-color: var(--ai-message-bg);
     color: var(--secondary-color);
-    border-bottom-left-radius: var(--border-radius-small);
 }
+
+/* --- 【核心修改区域结束】 --- */
 
 .message-bubble.system-message {
     font-style: italic;
@@ -857,7 +860,7 @@ input[type="range"]:hover::-moz-range-thumb {
 ::-webkit-scrollbar-thumb:hover { background: #777; }
 
 /* Responsive Adjustments */
-/* 【已修复】修改了移动端布局的核心逻辑 */
+/* 【已修改】优化移动端布局核心逻辑 */
 @media (max-width: 900px) {
     .game-main-interface {
         flex-direction: column;
@@ -887,11 +890,11 @@ input[type="range"]:hover::-moz-range-thumb {
     }
 }
 
-/* 【已修复】进一步优化小屏幕体验 */
+/* 【已修改】进一步优化小屏幕体验 */
 @media (max-width: 600px) {
     body { 
         padding: 10px; 
-        font-size: 16px; /* Set a base font size for mobile */
+        font-size: 16px; /* 为移动端设置基础字体大小 */
     }
 
     .game-container {
@@ -905,19 +908,16 @@ input[type="range"]:hover::-moz-range-thumb {
         height: 32px;
     }
     
-    /* Make message text larger on small screens */
     .message-content-wrapper {
-        font-size: 1em; /* Use the new base font size */
+        font-size: 1rem; /* 【修改】在移动端使用更易读的字体大小 (1rem = 16px) */
+        padding: 8px 12px;
     }
     
     .message-bubble {
-        max-width: 95%; /* More width for smaller screens */
-        gap: 8px;
+        max-width: 98%; /* 在小屏幕上允许气泡更宽 */
     }
-    .message-bubble.player-message { margin-left: 5%; }
-    .message-bubble.ai-message { margin-right: 5%; }
 
-    :root { --avatar-size: 32px; } /* Smaller avatars on small screens */
+    :root { --avatar-size: 32px; } /* 在小屏幕上使用更小的头像 */
 
     .input-container { 
         flex-direction: column; 

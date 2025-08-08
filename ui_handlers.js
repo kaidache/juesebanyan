@@ -134,18 +134,38 @@ document.addEventListener('DOMContentLoaded', () => {
                      else bubble.classList.add('summary-notification');
                 }
             } else {
+                // --- 【核心修改区域开始】 ---
+                // 重构为“头部+内容”结构，头像显示在上方
                 const isPlayer = messageType.includes('player');
                 const avatarSrc = isPlayer ? S.currentPlayerAvatar : S.currentAiAvatar;
+                const characterName = isPlayer ? '玩家' : 'AI';
                 const avatarAlt = isPlayer ? 'Player' : 'AI';
 
-                const avatarSection = document.createElement('div');
-                avatarSection.className = 'avatar-section';
-                avatarSection.innerHTML = `
-                    <img src='${avatarSrc}' alt="${avatarAlt}" class="avatar-image">
-                    <div class="message-meta">
-                        ${floor != null ? `<span class="floor-number">#${floor}</span>` : ''}
-                    </div>`;
+                // 1. 创建消息头部 (div.message-header)
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'message-header';
 
+                const avatarImg = document.createElement('img');
+                avatarImg.src = avatarSrc;
+                avatarImg.alt = avatarAlt;
+                avatarImg.className = 'avatar-image';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'character-name';
+                nameSpan.textContent = characterName;
+
+                const floorSpan = document.createElement('span');
+                floorSpan.className = 'floor-number';
+                if (floor != null) {
+                    floorSpan.textContent = `#${floor}`;
+                }
+
+                // 按顺序添加元素到头部
+                headerDiv.appendChild(avatarImg);
+                headerDiv.appendChild(nameSpan);
+                headerDiv.appendChild(floorSpan);
+
+                // 2. 创建消息内容包装器 (div.message-content-wrapper)
                 const contentWrapper = document.createElement('div');
                 contentWrapper.className = 'message-content-wrapper';
                 
@@ -163,6 +183,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     contentWrapper.appendChild(modelSpan);
                 }
 
+                // 3. 创建操作按钮区域 (div.message-actions)
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'message-actions';
                 
@@ -180,8 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     contentWrapper.appendChild(actionsDiv);
                 }
 
-                bubble.appendChild(avatarSection);
+                // 4. 将头部和内容包装器添加到主气泡中
+                bubble.appendChild(headerDiv);
                 bubble.appendChild(contentWrapper);
+                // --- 【核心修改区域结束】 ---
             }
 
             E.gameOutputDiv.appendChild(bubble);
@@ -329,6 +352,10 @@ document.addEventListener('DOMContentLoaded', () => {
             thinkingBubble.classList.remove('is-thinking');
             thinkingBubble.classList.add('ai-error-message');
             
+            // For error message, we might want a simpler structure. Let's reuse the new structure.
+            const headerDiv = thinkingBubble.querySelector('.message-header');
+            if(headerDiv) headerDiv.style.display = 'none'; // Hide header for error
+
             const contentWrapper = thinkingBubble.querySelector('.message-content-wrapper');
             contentWrapper.innerHTML = `<span class="message-text error-text-display">${errorMessage}</span>`;
             
@@ -362,10 +389,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const textSpan = wrapper.querySelector('.message-text');
             const actionsDiv = wrapper.querySelector('.message-actions');
             const existingTextarea = wrapper.querySelector('.edit-textarea');
+            const headerDiv = bubble.querySelector('.message-header'); // Get header
 
             if (isEditing && !existingTextarea) {
                 bubble.classList.add('editing-message');
                 if(actionsDiv) actionsDiv.style.display = 'none';
+                if(headerDiv) headerDiv.style.display = 'none'; // Hide header during edit
                 textSpan.style.display = 'none';
 
                 const currentText = S.conversationHistory.find(m => m.id === messageId)?.content || '';
@@ -391,6 +420,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (!isEditing && existingTextarea) {
                  bubble.classList.remove('editing-message');
                  if(actionsDiv) actionsDiv.style.display = 'flex';
+                 if(headerDiv) headerDiv.style.display = 'flex'; // Show header again
                  textSpan.style.display = 'block';
                  wrapper.querySelector('.edit-textarea').remove();
                  wrapper.querySelector('.edit-controls').remove();
