@@ -1,4 +1,4 @@
-// ui_handlers.js
+// ui_handlers.js (已修复 Bug)
 
 GameApp.ui = {};
 GameApp.elements = {};
@@ -452,16 +452,24 @@ document.addEventListener('DOMContentLoaded', () => {
             const openaiSettings = document.querySelectorAll('[data-provider-setting="openai"]');
             openaiSettings.forEach(el => el.style.display = provider === 'google' ? 'none' : 'block');
             
-            const isGoogle = provider === 'google';
-            E.topKSlider.disabled = isGoogle;
-            E.topKSlider.parentElement.style.opacity = isGoogle ? 0.5 : 1;
-            E.topKSlider.parentElement.title = isGoogle ? 'Google Gemini API 不支持 Top K 参数' : '';
+            const providerDisablesTopK = (provider === 'google' || provider === 'custom_openai');
+            
+            E.topKSlider.disabled = providerDisablesTopK;
+            E.topKSlider.parentElement.style.opacity = providerDisablesTopK ? 0.5 : 1;
+
+            let title = '';
+            if (provider === 'google') {
+                title = 'Google Gemini API 不支持 Top K 参数';
+            } else if (provider === 'custom_openai') {
+                title = '自定义服务商模式已禁用 Top K 参数';
+            }
+            E.topKSlider.parentElement.title = title;
 
 
             if (provider === 'google') {
                 if (E.apiModelInput.value.toLowerCase().includes('gpt')) E.apiModelInput.value = 'gemini-1.5-flash-latest';
                 if (E.summaryApiModelInput.value.toLowerCase().includes('gpt')) E.summaryApiModelInput.value = 'gemini-1.0-pro';
-            } else {
+            } else { // 包括 openai 和 custom_openai
                 if (E.apiModelInput.value.toLowerCase().includes('gemini')) E.apiModelInput.value = 'gpt-3.5-turbo';
                 if (E.summaryApiModelInput.value.toLowerCase().includes('gemini')) E.summaryApiModelInput.value = 'gpt-3.5-turbo';
             }
@@ -582,6 +590,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeApp = () => {
         getElements();
         defineUiFunctions();
+        bindEventListeners(); // --- 【BUG 修复】--- 在这里重新加入了对事件绑定函数的调用
         GameApp.logic.initialize();
 
         const E = GameApp.elements;
@@ -616,10 +625,12 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.updateStatusBarFromHistory();
             ui.recalculateFloorsAndCounter();
         } else {
-            ui.showSystemMessage({text: '欢迎来到对话冒险游戏！请点击右上角 ⚙️ 按钮配置API，并填入核心提示词。', type: 'system-message', temporary: false});
+            ui.showSystemMessage({text: '欢迎来到对话冒险游戏！请先点击右上角的“设置”按钮，配置您的API Key和游戏核心提示词。', type: 'system-message', temporary: false});
         }
-        
-        bindEventListeners();
+
+        ui.toggleProviderSettings();
+        ui.scrollToBottom();
+        E.playerInput.focus();
     };
 
     initializeApp();
