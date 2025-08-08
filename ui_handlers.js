@@ -134,14 +134,11 @@ document.addEventListener('DOMContentLoaded', () => {
                      else bubble.classList.add('summary-notification');
                 }
             } else {
-                // --- 【核心修改区域开始】 ---
-                // 重构为“头部+内容”结构，头像显示在上方
                 const isPlayer = messageType.includes('player');
                 const avatarSrc = isPlayer ? S.currentPlayerAvatar : S.currentAiAvatar;
                 const characterName = isPlayer ? '玩家' : 'AI';
                 const avatarAlt = isPlayer ? 'Player' : 'AI';
 
-                // 1. 创建消息头部 (div.message-header)
                 const headerDiv = document.createElement('div');
                 headerDiv.className = 'message-header';
 
@@ -160,12 +157,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     floorSpan.textContent = `#${floor}`;
                 }
 
-                // 按顺序添加元素到头部
                 headerDiv.appendChild(avatarImg);
                 headerDiv.appendChild(nameSpan);
                 headerDiv.appendChild(floorSpan);
 
-                // 2. 创建消息内容包装器 (div.message-content-wrapper)
                 const contentWrapper = document.createElement('div');
                 contentWrapper.className = 'message-content-wrapper';
                 
@@ -183,7 +178,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     contentWrapper.appendChild(modelSpan);
                 }
 
-                // 3. 创建操作按钮区域 (div.message-actions)
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'message-actions';
                 
@@ -201,10 +195,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     contentWrapper.appendChild(actionsDiv);
                 }
 
-                // 4. 将头部和内容包装器添加到主气泡中
                 bubble.appendChild(headerDiv);
                 bubble.appendChild(contentWrapper);
-                // --- 【核心修改区域结束】 ---
             }
 
             E.gameOutputDiv.appendChild(bubble);
@@ -265,6 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         ui.updateStatusBar = (text, sourceId) => {
+            // 【双重保险修正】在更新前检查元素是否存在，防止因DOM不可见或不存在时JS报错中断
+            if (!E.statusBarPre) return;
             E.statusBarPre.textContent = text;
             S.currentStatusBarSourceMessageId = sourceId;
         };
@@ -352,9 +346,8 @@ document.addEventListener('DOMContentLoaded', () => {
             thinkingBubble.classList.remove('is-thinking');
             thinkingBubble.classList.add('ai-error-message');
             
-            // For error message, we might want a simpler structure. Let's reuse the new structure.
             const headerDiv = thinkingBubble.querySelector('.message-header');
-            if(headerDiv) headerDiv.style.display = 'none'; // Hide header for error
+            if(headerDiv) headerDiv.style.display = 'none';
 
             const contentWrapper = thinkingBubble.querySelector('.message-content-wrapper');
             contentWrapper.innerHTML = `<span class="message-text error-text-display">${errorMessage}</span>`;
@@ -389,12 +382,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const textSpan = wrapper.querySelector('.message-text');
             const actionsDiv = wrapper.querySelector('.message-actions');
             const existingTextarea = wrapper.querySelector('.edit-textarea');
-            const headerDiv = bubble.querySelector('.message-header'); // Get header
+            const headerDiv = bubble.querySelector('.message-header');
 
             if (isEditing && !existingTextarea) {
                 bubble.classList.add('editing-message');
                 if(actionsDiv) actionsDiv.style.display = 'none';
-                if(headerDiv) headerDiv.style.display = 'none'; // Hide header during edit
+                if(headerDiv) headerDiv.style.display = 'none';
                 textSpan.style.display = 'none';
 
                 const currentText = S.conversationHistory.find(m => m.id === messageId)?.content || '';
@@ -420,7 +413,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (!isEditing && existingTextarea) {
                  bubble.classList.remove('editing-message');
                  if(actionsDiv) actionsDiv.style.display = 'flex';
-                 if(headerDiv) headerDiv.style.display = 'flex'; // Show header again
+                 if(headerDiv) headerDiv.style.display = 'flex';
                  textSpan.style.display = 'block';
                  wrapper.querySelector('.edit-textarea').remove();
                  wrapper.querySelector('.edit-controls').remove();
@@ -499,7 +492,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (provider === 'google') {
                 if (E.apiModelInput.value.toLowerCase().includes('gpt')) E.apiModelInput.value = 'gemini-1.5-flash-latest';
                 if (E.summaryApiModelInput.value.toLowerCase().includes('gpt')) E.summaryApiModelInput.value = 'gemini-1.0-pro';
-            } else { // 包括 openai 和 custom_openai
+            } else {
                 if (E.apiModelInput.value.toLowerCase().includes('gemini')) E.apiModelInput.value = 'gpt-3.5-turbo';
                 if (E.summaryApiModelInput.value.toLowerCase().includes('gemini')) E.summaryApiModelInput.value = 'gpt-3.5-turbo';
             }
@@ -620,7 +613,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const initializeApp = () => {
         getElements();
         defineUiFunctions();
-        bindEventListeners(); // --- 【BUG 修复】--- 在这里重新加入了对事件绑定函数的调用
+        bindEventListeners();
         GameApp.logic.initialize();
 
         const E = GameApp.elements;

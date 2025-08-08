@@ -207,7 +207,6 @@ body {
     overflow-y: auto;
 }
 
-/* 消息气泡结构 */
 .message-bubble {
     max-width: 90%;
     position: relative;
@@ -443,6 +442,7 @@ body {
 }
 .edit-controls .save-edit-btn:hover { background-color: #409143; }
 .edit-controls .cancel-edit-btn:hover { background-color: #5a6268; }
+
 input[type="text"],
 input[type="password"],
 input[type="number"],
@@ -870,32 +870,39 @@ input[type="range"]:hover::-moz-range-thumb {
     font-style: normal;
 }
 
-/* 解决手机端状态栏遮挡剧情框的布局调整 */
+/* 解决手机端状态栏遮挡剧情框的布局调整（最终修正版） */
 @media (max-width: 900px) {
     .game-main-interface {
         flex-direction: column;
     }
-
     .status-bar-area {
         width: 100% !important;
-        max-height: 40vh; /* 展开时最大高度 */
+        max-height: 40vh;
         order: -1;
+        transition: max-height 0.3s ease-in-out;
     }
 
-    /* 折叠时只隐藏内容，不隐藏按钮 */
     .status-bar-area.status-bar-collapsed {
-        max-height: none !important;
-        overflow: visible;
-        padding: 0 !important;
+        max-height: 40px !important; /* 调整为仅容纳按钮的高度 */
+        overflow: hidden;
+        padding: 0;
         border: none;
+        background-color: transparent;
     }
+    
     .status-bar-area.status-bar-collapsed .status-bar-content {
-        display: none;
+        visibility: hidden;
+        height: 0;
+        padding: 0;
+        margin: 0;
+        overflow: hidden;
     }
 
     .status-bar-toggle {
         width: 100%;
         padding: 8px 10px;
         display: block;
+        height: 40px; /* 明确按钮高度 */
+        background-color: var(--panel-bg);
     }
 }
