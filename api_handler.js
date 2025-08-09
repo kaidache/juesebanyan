@@ -118,7 +118,11 @@ const openAIAdapter = {
     async getModels(apiKey, baseUrl) {
         const url = _buildUrl(baseUrl, 'https://api.openai.com/v1', '/models');
         const response = await fetch(url, {
-            headers: { 'Authorization': `Bearer ${apiKey}` }
+            headers: { 'Authorization': `Bearer ${apiKey}` },
+            // --- 【修改】---
+            // 添加 cache: 'no-cache' 选项，强制浏览器每次都向服务器验证，
+            // 避免因缓存导致更换 Key 后模型列表不更新的问题。
+            cache: 'no-cache'
         });
 
         if (!response.ok) {
@@ -374,7 +378,12 @@ const googleGeminiAdapter = {
             do {
                 const url = `${baseUrl}?key=${apiKey}&pageSize=100${nextPageToken ? `&pageToken=${nextPageToken}` : ''}`;
                 
-                const response = await fetch(url);
+                const response = await fetch(url, {
+                    // --- 【修改】---
+                    // 同样添加 cache: 'no-cache' 选项，确保每次都重新获取。
+                    cache: 'no-cache'
+                });
+
                 if (!response.ok) {
                     const errorData = await response.json().catch(() => ({}));
                     const errorMessage = errorData.error?.message || `HTTP Error: ${response.status}`;
