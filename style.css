@@ -1624,7 +1624,7 @@ input[type="range"]:hover::-moz-range-thumb {
     }
     .game-container {
         padding: var(--spacing-lg);
-        height: calc(200dvh - 40px); /* 移动端高度调整为当前的两倍 */
+        height: calc(150dvh - 30px); /* 原为 calc(100dvh - 20px)，按 1.5 倍提升整体高度 */
         border-radius: var(--border-radius-lg);
     }
     
