@@ -2,6 +2,26 @@
 
 const GameApp = {
     state: {
+        // 多组合管理
+        currentComboId: 'combo-1',
+        promptCombos: {
+            'combo-1': {
+                name: '组合 1',
+                conversationHistory: [],
+                systemPrompt: "",
+                prefix: "",
+                postfix: "",
+                messageIdCounter: 0,
+                currentFloorCounter: 1,
+                currentStatusBarSourceMessageId: null,
+                accumulatedSummaryContent: "",
+                summarizedUntilTurnCount: 0,
+                playerAvatar: '',
+                aiAvatar: ''
+            }
+        },
+        
+        // 当前活动数据（从当前组合加载）
         conversationHistory: [],
         currentSystemPrompt: "",
         currentPrefix: "",
@@ -35,46 +55,228 @@ const GameApp = {
     },
 
     logic: {
-        saveHistoryToLocalStorage() {
+        // 组合管理方法
+        saveCurrentComboData() {
             const state = GameApp.state;
-            if (state.conversationHistory.length > 0) {
-                localStorage.setItem('savedConversationHistory', 
-                    JSON.stringify(state.conversationHistory));
-            } else {
-                localStorage.removeItem('savedConversationHistory');
+            const currentCombo = state.promptCombos[state.currentComboId];
+            if (currentCombo) {
+                currentCombo.conversationHistory = [...state.conversationHistory];
+                currentCombo.systemPrompt = state.currentSystemPrompt;
+                currentCombo.prefix = state.currentPrefix;
+                currentCombo.postfix = state.currentPostfix;
+                currentCombo.messageIdCounter = state.messageIdCounter;
+                currentCombo.currentFloorCounter = state.currentFloorCounter;
+                currentCombo.currentStatusBarSourceMessageId = state.currentStatusBarSourceMessageId;
+                currentCombo.accumulatedSummaryContent = state.accumulatedSummaryContent;
+                currentCombo.summarizedUntilTurnCount = state.summarizedUntilTurnCount;
+                currentCombo.playerAvatar = state.currentPlayerAvatar;
+                currentCombo.aiAvatar = state.currentAiAvatar;
             }
+        },
+
+        loadComboData(comboId) {
+            const state = GameApp.state;
+            const combo = state.promptCombos[comboId];
+            if (combo) {
+                state.conversationHistory = [...combo.conversationHistory];
+                state.currentSystemPrompt = combo.systemPrompt;
+                state.currentPrefix = combo.prefix;
+                state.currentPostfix = combo.postfix;
+                state.messageIdCounter = combo.messageIdCounter;
+                state.currentFloorCounter = combo.currentFloorCounter;
+                state.currentStatusBarSourceMessageId = combo.currentStatusBarSourceMessageId;
+                state.accumulatedSummaryContent = combo.accumulatedSummaryContent;
+                state.summarizedUntilTurnCount = combo.summarizedUntilTurnCount;
+                state.currentPlayerAvatar = combo.playerAvatar || GameApp.config.defaultPlayerAvatar;
+                state.currentAiAvatar = combo.aiAvatar || GameApp.config.defaultAiAvatar;
+                state.currentComboId = comboId;
+            }
+        },
+
+        switchToCombo(comboId) {
+            this.saveCurrentComboData();
+            this.saveAllCombosToStorage();
+            this.loadComboData(comboId);
+        },
+
+        createNewCombo(name) {
+            const state = GameApp.state;
+            // 生成唯一ID，避免与现有组合冲突
+            let newId;
+            let counter = 1;
+            do {
+                newId = 'combo-' + counter;
+                counter++;
+            } while (state.promptCombos[newId]);
+            state.promptCombos[newId] = {
+                name: name || `组合 ${Object.keys(state.promptCombos).length + 1}`,
+                conversationHistory: [],
+                systemPrompt: "",
+                prefix: "",
+                postfix: "",
+                messageIdCounter: 0,
+                currentFloorCounter: 1,
+                currentStatusBarSourceMessageId: null,
+                accumulatedSummaryContent: "",
+                summarizedUntilTurnCount: 0,
+                playerAvatar: GameApp.config.defaultPlayerAvatar,
+                aiAvatar: GameApp.config.defaultAiAvatar
+            };
+            this.saveAllCombosToStorage();
+            return newId;
+        },
+
+        renameCombo(comboId, newName) {
+            const state = GameApp.state;
+            if (state.promptCombos[comboId]) {
+                state.promptCombos[comboId].name = newName;
+                this.saveAllCombosToStorage();
+            }
+        },
+
+        deleteCombo(comboId) {
+            const state = GameApp.state;
+            if (Object.keys(state.promptCombos).length <= 1) {
+                return false; // 不能删除最后一个组合
+            }
+            if (state.promptCombos[comboId]) {
+                delete state.promptCombos[comboId];
+                if (state.currentComboId === comboId) {
+                    // 切换到第一个可用组合
+                    const firstComboId = Object.keys(state.promptCombos)[0];
+                    this.loadComboData(firstComboId);
+                    // 更新UI显示，包括状态栏
+                    if (GameApp.ui && GameApp.ui.refreshGameOutput) {
+                        GameApp.ui.refreshGameOutput();
+                    }
+                }
+                this.saveAllCombosToStorage();
+                return true;
+            }
+            return false;
+        },
+
+        saveAllCombosToStorage() {
+            const state = GameApp.state;
+            localStorage.setItem('promptCombos', JSON.stringify(state.promptCombos));
+            localStorage.setItem('currentComboId', state.currentComboId);
+        },
+
+        loadAllCombosFromStorage() {
+            const state = GameApp.state;
+            try {
+                const savedCombos = localStorage.getItem('promptCombos');
+                const savedCurrentId = localStorage.getItem('currentComboId');
+                
+                if (savedCombos) {
+                    state.promptCombos = JSON.parse(savedCombos);
+                }
+                if (savedCurrentId && state.promptCombos[savedCurrentId]) {
+                    state.currentComboId = savedCurrentId;
+                }
+                
+                // 确保至少有一个组合
+                if (Object.keys(state.promptCombos).length === 0) {
+                    state.promptCombos['combo-1'] = {
+                        name: '组合 1',
+                        conversationHistory: [],
+                        systemPrompt: "",
+                        prefix: "",
+                        postfix: "",
+                        messageIdCounter: 0,
+                        currentFloorCounter: 1,
+                        currentStatusBarSourceMessageId: null,
+                        accumulatedSummaryContent: "",
+                        summarizedUntilTurnCount: 0,
+                        playerAvatar: GameApp.config.defaultPlayerAvatar,
+                        aiAvatar: GameApp.config.defaultAiAvatar
+                    };
+                    state.currentComboId = 'combo-1';
+                }
+            } catch (e) {
+                console.error('加载组合数据失败:', e);
+            }
+        },
+
+        saveHistoryToLocalStorage() {
+            // 保存当前组合数据
+            this.saveCurrentComboData();
+            this.saveAllCombosToStorage();
         },
 
         initialize() {
             const state = GameApp.state;
             const config = GameApp.config;
 
-            state.currentSystemPrompt = localStorage.getItem('systemPrompt') || "";
-            state.currentPrefix = localStorage.getItem('prefix') || "";
-            state.currentPostfix = localStorage.getItem('postfix') || "";
-            state.currentPlayerAvatar = localStorage.getItem('playerAvatarUrl') || config.defaultPlayerAvatar;
-            state.currentAiAvatar = localStorage.getItem('aiAvatarUrl') || config.defaultAiAvatar;
-
+            // 加载全局设置（不属于特定组合的设置）
             state.summarySettings.apiKey = localStorage.getItem('summaryApiKey') || '';
             state.summarySettings.baseUrl = localStorage.getItem('summaryApiBaseUrl') || '';
             state.summarySettings.model = localStorage.getItem('summaryApiModel') || '';
             state.currentSummaryPromptText = localStorage.getItem('summaryPromptText') || config.defaultSummaryPrompt;
-            state.accumulatedSummaryContent = localStorage.getItem('accumulatedSummaryContent') || "";
-            state.summarizedUntilTurnCount = parseInt(localStorage.getItem('summarizedUntilTurnCount') || '0', 10);
+
+            // 加载所有组合数据
+            this.loadAllCombosFromStorage();
             
-            try {
-                const savedHistory = localStorage.getItem('savedConversationHistory');
-                if (savedHistory) {
-                    state.conversationHistory = JSON.parse(savedHistory);
-                    
-                    if (state.conversationHistory.length > 0) {
-                        const maxId = Math.max(...state.conversationHistory.map(m => m.id || 0));
-                        state.messageIdCounter = maxId + 1;
+            // 加载当前组合的数据到活动状态
+            this.loadComboData(state.currentComboId);
+            
+            // 兼容旧版本数据迁移
+            this.migrateOldData();
+        },
+
+        migrateOldData() {
+            const state = GameApp.state;
+            const config = GameApp.config;
+            
+            // 检查是否有旧版本的数据需要迁移
+            const oldHistory = localStorage.getItem('savedConversationHistory');
+            const oldSystemPrompt = localStorage.getItem('systemPrompt');
+            const oldPrefix = localStorage.getItem('prefix');
+            const oldPostfix = localStorage.getItem('postfix');
+            const oldPlayerAvatar = localStorage.getItem('playerAvatarUrl');
+            const oldAiAvatar = localStorage.getItem('aiAvatarUrl');
+            const oldSummaryContent = localStorage.getItem('accumulatedSummaryContent');
+            const oldSummarizedCount = localStorage.getItem('summarizedUntilTurnCount');
+            
+            if (oldHistory || oldSystemPrompt || oldPrefix || oldPostfix) {
+                // 迁移到第一个组合
+                const firstCombo = state.promptCombos[state.currentComboId];
+                if (firstCombo) {
+                    if (oldHistory) {
+                        try {
+                            firstCombo.conversationHistory = JSON.parse(oldHistory);
+                            if (firstCombo.conversationHistory.length > 0) {
+                                const maxId = Math.max(...firstCombo.conversationHistory.map(m => m.id || 0));
+                                firstCombo.messageIdCounter = maxId + 1;
+                            }
+                        } catch (e) {
+                            console.error('迁移对话历史失败:', e);
+                        }
                     }
+                    if (oldSystemPrompt) firstCombo.systemPrompt = oldSystemPrompt;
+                    if (oldPrefix) firstCombo.prefix = oldPrefix;
+                    if (oldPostfix) firstCombo.postfix = oldPostfix;
+                    if (oldPlayerAvatar) firstCombo.playerAvatar = oldPlayerAvatar;
+                    if (oldAiAvatar) firstCombo.aiAvatar = oldAiAvatar;
+                    if (oldSummaryContent) firstCombo.accumulatedSummaryContent = oldSummaryContent;
+                    if (oldSummarizedCount) firstCombo.summarizedUntilTurnCount = parseInt(oldSummarizedCount, 10);
+                    
+                    // 重新加载当前组合数据
+                    this.loadComboData(state.currentComboId);
+                    
+                    // 保存迁移后的数据
+                    this.saveAllCombosToStorage();
+                    
+                    // 清理旧数据
+                    localStorage.removeItem('savedConversationHistory');
+                    localStorage.removeItem('systemPrompt');
+                    localStorage.removeItem('prefix');
+                    localStorage.removeItem('postfix');
+                    localStorage.removeItem('playerAvatarUrl');
+                    localStorage.removeItem('aiAvatarUrl');
+                    localStorage.removeItem('accumulatedSummaryContent');
+                    localStorage.removeItem('summarizedUntilTurnCount');
                 }
-            } catch (e) {
-                console.error('恢复对话历史失败:', e);
-                localStorage.removeItem('savedConversationHistory');
             }
         },
 
@@ -90,6 +292,31 @@ const GameApp = {
             localStorage.removeItem('savedConversationHistory');
             localStorage.removeItem('accumulatedSummaryContent');
             localStorage.removeItem('summarizedUntilTurnCount');
+        },
+
+        clearHistory() {
+            const state = GameApp.state;
+            // 清空当前组合的数据
+            state.conversationHistory = [];
+            state.messageIdCounter = 1;
+            state.accumulatedSummaryContent = "";
+            state.summarizedUntilTurnCount = 0;
+            state.currentFloorCounter = 1;
+            state.currentStatusBarSourceMessageId = null;
+            
+            // 同时清空当前组合在promptCombos中的数据
+            const currentCombo = state.promptCombos[state.currentComboId];
+            if (currentCombo) {
+                currentCombo.conversationHistory = [];
+                currentCombo.messageIdCounter = 1;
+                currentCombo.accumulatedSummaryContent = "";
+                currentCombo.summarizedUntilTurnCount = 0;
+                currentCombo.currentFloorCounter = 1;
+                currentCombo.currentStatusBarSourceMessageId = null;
+            }
+            
+            // 保存到本地存储
+            this.saveHistoryToLocalStorage();
         },
 
         generateMessageId: () => GameApp.state.messageIdCounter++,

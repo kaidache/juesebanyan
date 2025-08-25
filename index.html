@@ -24,6 +24,156 @@
         .status-bar-collapsed .status-bar-content {
             display: none;
         }
+        
+        /* 组合管理样式已移至style.css */
+        
+        #manageComboBtn {
+            padding: 4px 8px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        #manageComboBtn:hover {
+            background: #0056b3;
+        }
+        
+        .combo-manage-modal {
+            display: none;
+            position: fixed;
+            z-index: 1001;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        
+        .combo-manage-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .combo-manage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .combo-manage-header h3 {
+            margin: 0;
+            color: #333;
+        }
+        
+        .combo-list {
+            margin-bottom: 16px;
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        .combo-item {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s ease;
+            background-color: #ffffff;
+        }
+        
+        .combo-item:last-child {
+            border-bottom: none;
+        }
+        
+        .combo-item:hover {
+            background-color: #f5f7fa;
+            transform: translateX(2px);
+        }
+        
+        .combo-item:hover .combo-name {
+            color: #1976d2;
+        }
+        
+        .combo-item.current {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1);
+        }
+        
+        .combo-name {
+            font-weight: 500;
+            color: #2c3e50;
+        }
+        
+        .combo-item.current .combo-name {
+            color: #1976d2;
+            font-weight: 600;
+        }
+        
+        .combo-info {
+            font-size: 12px;
+            color: #5a6c7d;
+        }
+        
+        .combo-item.current .combo-info {
+            color: #1565c0;
+        }
+        
+        .combo-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .combo-actions button {
+            padding: 8px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .combo-actions button:hover {
+            background: #f8f9fa;
+        }
+        
+        .combo-actions button.primary {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .combo-actions button.primary:hover {
+            background: #0056b3;
+        }
+        
+        .combo-actions button.danger {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+        
+        .combo-actions button.danger:hover {
+            background: #c82333;
+        }
     </style>
 </head>
 <body>
@@ -31,10 +181,18 @@
     <div class="game-container">
 
         <header class="game-title-header">
-            <h1>对话冒险游戏</h1>
             <div class="header-actions">
+                <h1>简易ai扮演模拟器</h1>
+                <div class="prompt-combo-section">
+                    <label for="promptComboSelect" class="combo-label">提示词组合:</label>
+                    <select id="promptComboSelect" class="combo-select">
+                        <option value="combo-1">组合 1</option>
+                    </select>
+                    <button id="manageComboBtn" class="btn btn-combo" title="管理提示词组合">管理</button>
+                </div>
                 <button id="editAvatarsBtn" class="btn btn-secondary" title="编辑玩家与AI头像">头像</button>
-                <button id="clearHistoryBtn" class="btn btn-secondary" title="清空所有对话记录和总结">清空</button>
+                <button id="clearHistoryBtn" class="btn btn-secondary" title="清空当前组合的对话记录和总结">清空</button>
+                <button id="promptSettingsToggleBtn" class="btn btn-secondary" title="打开提示词与前后置设置">提示词</button>
                 <button id="mainSettingsToggleBtn" class="btn btn-primary" title="打开主设置面板">⚙️ 设置</button>
             </div>
         </header>
@@ -78,7 +236,7 @@
                 </div>
 
                 <div id="tab-api-prompt" class="settings-tab-content active">
-                    <h3>主要API与提示词设置</h3>
+                    <h3>API 设置</h3>
                     <div class="form-group">
                         <label for="apiProvider">API 服务商:</label>
                         <select id="apiProvider">
@@ -109,7 +267,7 @@
                         <input type="number" id="memoryCount" min="2" max="100" value="20">
                     </div>
 
-                     <div class="form-group slider-group">
+                    <div class="form-group slider-group">
                         <label for="temperatureSlider">温度 (Temperature): <span id="temperatureValue">0.7</span></label>
                         <input type="range" id="temperatureSlider" min="0" max="2" step="0.1" value="0.7">
                     </div>
@@ -134,25 +292,8 @@
                     
                     <button id="saveApiSettingsBtn" class="btn btn-primary">保存API设置</button>
                     <span id="apiSettingsStatus" class="status-message"></span>
-                    
-                    <hr>
 
-                    <div class="form-group">
-                        <label for="systemPromptTextareaModal">游戏核心提示词 (System Prompt):</label>
-                        <textarea id="systemPromptTextareaModal" rows="8"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="prefixTextareaModal">前置 (Prefix):</label>
-                        <textarea id="prefixTextareaModal" rows="4"></textarea>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="postfixTextareaModal">后置 (Postfix):</label>
-                        <textarea id="postfixTextareaModal" rows="4"></textarea>
-                    </div>
-                    
-                    <button id="savePromptFromModalBtn" class="btn btn-primary">保存提示词与前后置</button>
+                    <!-- 提示词设置已移动至独立页面（提示词按钮中） -->
                 </div>
                 
                 <div id="tab-summary" class="settings-tab-content">
@@ -182,6 +323,54 @@
                         <textarea id="summaryContentDisplay" rows="8"></textarea>
                     </div>
                     <button id="saveSummarySettingsBtn" class="btn btn-primary">保存总结设置</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：提示词独立设置面板 -->
+    <div id="promptSettingsModal" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>提示词与前后置设置</h2>
+                <span id="closePromptSettingsModalBtn" class="close-modal-btn">&times;</span>
+            </header>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="systemPromptTextareaModal">游戏核心提示词 (System Prompt):</label>
+                    <textarea id="systemPromptTextareaModal" rows="8"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="prefixTextareaModal">前置 (Prefix):</label>
+                    <textarea id="prefixTextareaModal" rows="4"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="postfixTextareaModal">后置 (Postfix):</label>
+                    <textarea id="postfixTextareaModal" rows="4"></textarea>
+                </div>
+                <button id="savePromptFromModalBtn" class="btn btn-primary">保存提示词与前后置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示词组合管理面板 -->
+    <div id="comboManageModal" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>提示词组合管理</h2>
+                <span id="closeComboManageModalBtn" class="close-modal-btn">&times;</span>
+            </header>
+            <div class="modal-body">
+                <div class="combo-list-section">
+                    <h3>现有组合</h3>
+                    <div id="comboList" class="combo-list">
+                        <!-- 动态生成组合列表 -->
+                    </div>
+                </div>
+                <div class="combo-actions-section">
+                    <button id="addComboBtn" class="btn btn-primary">新建组合</button>
+                    <button id="renameComboBtn" class="btn btn-secondary">重命名当前组合</button>
+                    <button id="deleteComboBtn" class="btn btn-danger">删除当前组合</button>
                 </div>
             </div>
         </div>

@@ -24,8 +24,11 @@ document.addEventListener('DOMContentLoaded', () => {
         E.editAvatarsBtn = document.getElementById('editAvatarsBtn');
         E.clearHistoryBtn = document.getElementById('clearHistoryBtn');
         E.mainSettingsToggleBtn = document.getElementById('mainSettingsToggleBtn');
+        E.promptSettingsToggleBtn = document.getElementById('promptSettingsToggleBtn');
         E.settingsModal = document.getElementById('settingsModal');
         E.closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
+        E.promptSettingsModal = document.getElementById('promptSettingsModal');
+        E.closePromptSettingsModalBtn = document.getElementById('closePromptSettingsModalBtn');
         E.tabButtons = document.querySelectorAll('.tab-button');
         E.tabContents = document.querySelectorAll('.settings-tab-content');
         E.apiProviderSelect = document.getElementById('apiProvider');
@@ -68,6 +71,20 @@ document.addEventListener('DOMContentLoaded', () => {
         E.saveAvatarsBtn = document.getElementById('saveAvatarsBtn');
         E.resetAvatarsBtn = document.getElementById('resetAvatarsBtn');
         E.avatarEditStatus = document.getElementById('avatarEditStatus');
+        
+        // 组合管理相关元素
+        E.promptComboSelect = document.getElementById('promptComboSelect');
+        E.manageComboBtn = document.getElementById('manageComboBtn');
+        E.comboManageModal = document.getElementById('comboManageModal');
+        E.closeComboManageModalBtn = document.getElementById('closeComboManageModalBtn');
+        E.comboListDiv = document.getElementById('comboList');
+        E.newComboBtn = document.getElementById('addComboBtn');
+        E.renameComboBtn = document.getElementById('renameComboBtn');
+        E.deleteComboBtn = document.getElementById('deleteComboBtn');
+        
+
+        
+
     };
     
     const createGuardedAction = (callback) => {
@@ -226,12 +243,237 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
 
+        ui.showInputDialog = (message, defaultValue = '') => {
+            return new Promise((resolve) => {
+                // 创建模态对话框
+                const modal = document.createElement('div');
+                modal.className = 'modal-overlay';
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0, 0, 0, 0.5);
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    z-index: 10000;
+                `;
+
+                const dialog = document.createElement('div');
+                dialog.className = 'input-dialog';
+                dialog.style.cssText = `
+                    background: var(--card-bg, #ffffff);
+                    border-radius: 8px;
+                    padding: 24px;
+                    min-width: 300px;
+                    max-width: 500px;
+                    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+                    border: 1px solid var(--border-color, #e0e0e0);
+                `;
+
+                const messageEl = document.createElement('p');
+                messageEl.textContent = message;
+                messageEl.style.cssText = `
+                    margin: 0 0 16px 0;
+                    color: var(--text-color, #333333);
+                    font-size: 14px;
+                    line-height: 1.4;
+                `;
+
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.value = defaultValue;
+                input.style.cssText = `
+                    width: 100%;
+                    padding: 8px 12px;
+                    border: 1px solid var(--border-color, #ddd);
+                    border-radius: 4px;
+                    font-size: 14px;
+                    margin-bottom: 16px;
+                    box-sizing: border-box;
+                    background: var(--input-bg, #ffffff);
+                    color: var(--text-color, #333333);
+                `;
+
+                const buttonContainer = document.createElement('div');
+                buttonContainer.style.cssText = `
+                    display: flex;
+                    gap: 8px;
+                    justify-content: flex-end;
+                `;
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.textContent = '取消';
+                cancelBtn.className = 'btn btn-secondary';
+                cancelBtn.style.cssText = `
+                    padding: 8px 16px;
+                    border: 1px solid var(--border-color, #ddd);
+                    background: var(--card-bg, #ffffff);
+                    color: var(--text-color, #333333);
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                `;
+
+                const confirmBtn = document.createElement('button');
+                confirmBtn.textContent = '确定';
+                confirmBtn.className = 'btn btn-primary';
+                confirmBtn.style.cssText = `
+                    padding: 8px 16px;
+                    border: none;
+                    background: var(--primary-color, #007bff);
+                    color: white;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                `;
+
+                // 事件处理
+                const handleConfirm = () => {
+                    const value = input.value.trim();
+                    document.body.removeChild(modal);
+                    resolve(value || null);
+                };
+
+                const handleCancel = () => {
+                    document.body.removeChild(modal);
+                    resolve(null);
+                };
+
+                confirmBtn.onclick = handleConfirm;
+                cancelBtn.onclick = handleCancel;
+                
+                // 回车确认，ESC取消
+                input.onkeydown = (e) => {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleConfirm();
+                    } else if (e.key === 'Escape') {
+                        e.preventDefault();
+                        handleCancel();
+                    }
+                };
+
+                // 点击背景关闭
+                modal.onclick = (e) => {
+                    if (e.target === modal) {
+                        handleCancel();
+                    }
+                };
+
+                // 组装对话框
+                buttonContainer.appendChild(cancelBtn);
+                buttonContainer.appendChild(confirmBtn);
+                dialog.appendChild(messageEl);
+                dialog.appendChild(input);
+                dialog.appendChild(buttonContainer);
+                modal.appendChild(dialog);
+                document.body.appendChild(modal);
+
+                // 自动聚焦并选中默认值
+                setTimeout(() => {
+                    input.focus();
+                    if (defaultValue) {
+                        input.select();
+                    }
+                }, 100);
+             });
+         };
+
         ui.scrollToBottom = () => {
             setTimeout(() => {
                 if (E.gameOutputDiv) {
                     E.gameOutputDiv.scrollTop = E.gameOutputDiv.scrollHeight;
                 }
             }, 0);
+        };
+        
+        // 组合管理相关UI函数
+        ui.updateComboSelector = () => {
+            const S = GameApp.state;
+            E.promptComboSelect.innerHTML = '';
+            
+            Object.keys(S.promptCombos).forEach(comboId => {
+                const combo = S.promptCombos[comboId];
+                const option = document.createElement('option');
+                option.value = comboId;
+                option.textContent = combo.name;
+                if (comboId === S.currentComboId) {
+                    option.selected = true;
+                }
+                E.promptComboSelect.appendChild(option);
+            });
+        };
+        
+        ui.updateComboList = () => {
+            const S = GameApp.state;
+            E.comboListDiv.innerHTML = '';
+            
+            Object.keys(S.promptCombos).forEach(comboId => {
+                const combo = S.promptCombos[comboId];
+                const comboItem = document.createElement('div');
+                comboItem.className = 'combo-item';
+                if (comboId === S.currentComboId) {
+                    comboItem.classList.add('current');
+                }
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = combo.name;
+                nameSpan.className = 'combo-name';
+                
+                const infoSpan = document.createElement('span');
+                infoSpan.textContent = `(${combo.conversationHistory.length} 条消息)`;
+                infoSpan.className = 'combo-info';
+                
+                comboItem.appendChild(nameSpan);
+                comboItem.appendChild(infoSpan);
+                
+                comboItem.onclick = () => {
+                    if (comboId !== S.currentComboId) {
+                        L.switchToCombo(comboId);
+                        ui.updateComboList();
+                        ui.updateComboSelector();
+                        ui.refreshUI();
+                    }
+                };
+                
+                E.comboListDiv.appendChild(comboItem);
+            });
+        };
+        
+        ui.refreshUI = () => {
+            const S = GameApp.state;
+            const E = GameApp.elements;
+            
+            // 更新提示词设置界面
+            E.systemPromptTextareaModal.value = S.currentSystemPrompt;
+            E.prefixTextareaModal.value = S.currentPrefix;
+            E.postfixTextareaModal.value = S.currentPostfix;
+            
+            // 更新头像预览
+            E.playerAvatarUrlInput.value = S.currentPlayerAvatar;
+            E.aiAvatarUrlInput.value = S.currentAiAvatar;
+            E.playerAvatarPreview.src = S.currentPlayerAvatar;
+            E.aiAvatarPreview.src = S.currentAiAvatar;
+            
+            // 更新游戏输出和状态栏
+            
+            // 更新总结内容
+            E.summaryContentDisplay.value = S.accumulatedSummaryContent;
+            
+            E.gameOutputDiv.innerHTML = '';
+            if (S.conversationHistory.length > 0) {
+                S.conversationHistory.forEach(msg => ui.addMessageToGameOutputDOM(msg));
+                ui.recalculateFloorsAndCounter();
+            } else {
+                ui.showSystemMessage({text: '当前组合暂无对话记录。', type: 'system-message', temporary: false});
+            }
+            // 无论是否有对话历史，都需要更新状态栏
+            ui.updateStatusBarFromHistory();
+            
+            ui.scrollToBottom();
         };
 
         ui.recalculateFloorsAndCounter = () => {
@@ -509,10 +751,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const bindEventListeners = () => {
-        const ui = GameApp.ui;
         const E = GameApp.elements;
-        const L = GameApp.logic;
         const S = GameApp.state;
+        const L = GameApp.logic;
+        const ui = GameApp.ui;
 
         E.sendButton.onclick = () => { const text = E.playerInput.value.trim(); if(text) L.sendPlayerMessage(text); };
         E.playerInput.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); E.sendButton.click(); }};
@@ -526,12 +768,13 @@ document.addEventListener('DOMContentLoaded', () => {
         E.advancePlotMajorBtn.onclick = createGuardedQuickAction('（大幅度推进剧情）');
 
         E.clearHistoryBtn.onclick = createGuardedAction(() => {
-            if (confirm('你确定要清空所有对话记录和总结吗？这个操作无法撤销。')) {
-                L.clearAllHistory();
+            if (confirm('你确定要清空当前组合的对话记录和总结吗？这个操作无法撤销。')) {
+                L.clearHistory();
                 E.gameOutputDiv.innerHTML = '';
                 ui.updateStatusBar("游戏尚未开始或无状态信息。", null);
                 ui.updateSummaryContentDisplay('');
-                ui.showSystemMessage({ text: "所有对话记录已清空。", type: "system-message success", temporary: false });
+                ui.showSystemMessage({ text: "当前组合的对话记录已清空。", type: "system-message success", temporary: false });
+                ui.updateComboList(); // 更新组合列表显示
             }
         });
         
@@ -543,12 +786,22 @@ document.addEventListener('DOMContentLoaded', () => {
             E.summaryPromptTextarea.value = S.currentSummaryPromptText; 
             E.summaryContentDisplay.value = S.accumulatedSummaryContent;
         };
+        // 新增：打开提示词独立设置面板
+        E.promptSettingsToggleBtn.onclick = () => {
+            E.promptSettingsModal.style.display = 'block';
+            E.systemPromptTextareaModal.value = S.currentSystemPrompt;
+            E.prefixTextareaModal.value = S.currentPrefix;
+            E.postfixTextareaModal.value = S.currentPostfix;
+        };
         E.closeSettingsModalBtn.onclick = () => E.settingsModal.style.display = 'none';
+        E.closePromptSettingsModalBtn.onclick = () => E.promptSettingsModal.style.display = 'none';
         E.editAvatarsBtn.onclick = () => { ui.updateAvatarPreviewsInModal(); E.avatarEditModal.style.display = 'block'; };
         E.closeAvatarEditModalBtn.onclick = () => E.avatarEditModal.style.display = 'none';
         window.onclick = (event) => { 
             if(event.target === E.settingsModal) E.settingsModal.style.display = 'none'; 
-            if(event.target === E.avatarEditModal) E.avatarEditModal.style.display = 'none'; 
+            if(event.target === E.promptSettingsModal) E.promptSettingsModal.style.display = 'none'; 
+            if(event.target === E.avatarEditModal) E.avatarEditModal.style.display = 'none';
+            if(event.target === E.comboManageModal) E.comboManageModal.style.display = 'none'; 
         };
 
         E.tabButtons.forEach(button => {
@@ -584,10 +837,14 @@ document.addEventListener('DOMContentLoaded', () => {
             S.currentSystemPrompt = E.systemPromptTextareaModal.value;
             S.currentPrefix = E.prefixTextareaModal.value;
             S.currentPostfix = E.postfixTextareaModal.value;
+            // 保存到当前组合
+            L.saveCurrentComboData();
+            L.saveAllCombosToStorage();
+            // 保持向后兼容的全局存储
             localStorage.setItem('systemPrompt', S.currentSystemPrompt);
             localStorage.setItem('prefix', S.currentPrefix);
             localStorage.setItem('postfix', S.currentPostfix);
-            ui.showSystemMessage({ text: "核心提示词、前置和后置内容已更新并保存。", type: "system-message success" });
+            ui.showSystemMessage({ text: "核心提示词、前置和后置内容已更新并保存到当前组合。", type: "system-message success" });
         };
         
         E.getSummaryModelsBtn.onclick = () => ui.fetchModels(true);
@@ -608,6 +865,96 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.showSystemMessage({ text: '总结设置与内容已保存！', type: 'system-message success' });
             E.summarySettingsStatus.textContent = '';
         };
+        
+        // 组合管理相关事件绑定
+        if (E.promptComboSelect) {
+            E.promptComboSelect.onchange = () => {
+                if (S.isAiResponding || S.isSummarizing) {
+                    ui.showSystemMessage({ text: 'AI正在响应中，无法切换组合', type: 'system-message error' });
+                    E.promptComboSelect.value = S.currentComboId; // 恢复原选择
+                    return;
+                }
+                const selectedComboId = E.promptComboSelect.value;
+                if (selectedComboId !== S.currentComboId) {
+                    L.switchToCombo(selectedComboId);
+                    ui.refreshUI();
+                    ui.showSystemMessage({ text: `已切换到组合: ${S.promptCombos[selectedComboId].name}`, type: 'system-message success' });
+                }
+            };
+        }
+        
+        if (E.manageComboBtn) {
+            E.manageComboBtn.onclick = () => {
+                if (E.comboManageModal) {
+                    E.comboManageModal.style.display = 'block';
+                    if (ui && ui.updateComboList) {
+                        ui.updateComboList();
+                    }
+                }
+            };
+        }
+        
+        if (E.closeComboManageModalBtn) {
+            E.closeComboManageModalBtn.onclick = () => {
+                if (E.comboManageModal) {
+                    E.comboManageModal.style.display = 'none';
+                }
+            };
+        }
+        
+        if (E.newComboBtn) {
+            E.newComboBtn.onclick = async () => {
+                const comboCount = Object.keys(S.promptCombos).length;
+                if (comboCount >= 10) {
+                    ui.showSystemMessage({ text: '最多只能创建10个组合！', type: 'system-message error' });
+                    return;
+                }
+                
+                const name = await ui.showInputDialog('请输入新组合的名称:', `组合 ${comboCount + 1}`);
+                if (name && name.trim()) {
+                    const newComboId = L.createNewCombo(name.trim());
+                    L.switchToCombo(newComboId);
+                    ui.updateComboSelector();
+                    ui.updateComboList();
+                    ui.refreshUI();
+                    ui.showSystemMessage({ text: `新组合 "${name.trim()}" 已创建并切换！`, type: 'system-message success' });
+                }
+            };
+        }
+        
+        if (E.renameComboBtn) {
+            E.renameComboBtn.onclick = async () => {
+                const currentCombo = S.promptCombos[S.currentComboId];
+                const newName = await ui.showInputDialog('请输入新的组合名称:', currentCombo.name);
+                if (newName && newName.trim() && newName.trim() !== currentCombo.name) {
+                    L.renameCombo(S.currentComboId, newName.trim());
+                    ui.updateComboSelector();
+                    ui.updateComboList();
+                    ui.showSystemMessage({ text: `组合已重命名为 "${newName.trim()}"`, type: 'system-message success' });
+                }
+            };
+        }
+        
+        if (E.deleteComboBtn) {
+            E.deleteComboBtn.onclick = () => {
+                if (Object.keys(S.promptCombos).length <= 1) {
+                    ui.showSystemMessage({ text: '至少需要保留一个组合！', type: 'system-message error' });
+                    return;
+                }
+                
+                const currentCombo = S.promptCombos[S.currentComboId];
+                if (confirm(`确定要删除组合 "${currentCombo.name}" 吗？这将永久删除该组合的所有数据！`)) {
+                    const newComboId = L.deleteCombo(S.currentComboId);
+                    L.switchToCombo(newComboId);
+                    ui.updateComboSelector();
+                    ui.updateComboList();
+                    ui.refreshUI();
+                    ui.showSystemMessage({ text: `组合 "${currentCombo.name}" 已删除！`, type: 'system-message success' });
+                }
+            };
+        }
+        
+        // 组合管理模态框的外部点击关闭已在上面的window.onclick中处理
     };
 
     const initializeApp = () => {
@@ -642,14 +989,11 @@ document.addEventListener('DOMContentLoaded', () => {
         E.summaryPromptTextarea.value = S.currentSummaryPromptText;
         E.summaryContentDisplay.value = S.accumulatedSummaryContent;
         
-        E.gameOutputDiv.innerHTML = '';
-        if (S.conversationHistory.length > 0) {
-            S.conversationHistory.forEach(msg => ui.addMessageToGameOutputDOM(msg));
-            ui.updateStatusBarFromHistory();
-            ui.recalculateFloorsAndCounter();
-        } else {
-            ui.showSystemMessage({text: '欢迎来到对话冒险游戏！请先点击右上角的“设置”按钮，配置您的API Key和游戏核心提示词。', type: 'system-message', temporary: false});
-        }
+        // 初始化组合选择器
+        ui.updateComboSelector();
+        
+        // 刷新UI以确保数据同步
+        ui.refreshUI();
 
         ui.toggleProviderSettings();
         ui.scrollToBottom();
