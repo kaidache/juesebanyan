@@ -46,6 +46,8 @@ const GameApp = {
         currentSummaryPromptText: "",
         accumulatedSummaryContent: "",
         summarizedUntilTurnCount: 0,
+        // 自动滚动控制：当用户向上滚动查看历史时置为 false，避免强制拉回底部
+        autoScrollEnabled: true,
     },
 
     config: {

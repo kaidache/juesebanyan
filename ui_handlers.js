@@ -96,6 +96,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ui.showSystemMessage({ text: "AI正在处理任务，请稍候...", type: "system-message warning" });
                 return;
             }
+            // 触发动作（如发送消息）前，恢复自动滚动
+            S.autoScrollEnabled = true;
             callback(...args);
         };
     };
@@ -127,6 +129,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (role === 'assistant') return 'ai-message';
             if (role === 'error-display') return 'ai-message ai-error-message';
             return 'system-message';
+        };
+
+        // 统一的滚动到底部函数（带自动滚动开关和回退）
+        ui.scrollToBottom = (behavior = 'smooth') => {
+            if (!S.autoScrollEnabled) return;
+            setTimeout(() => {
+                if (E.gameOutputDiv) {
+                    const top = E.gameOutputDiv.scrollHeight;
+                    if (typeof E.gameOutputDiv.scrollTo === 'function') {
+                        E.gameOutputDiv.scrollTo({ top, behavior });
+                    } else {
+                        E.gameOutputDiv.scrollTop = top;
+                    }
+                }
+            }, 0);
         };
 
         ui.addMessageToGameOutputDOM = (messageData) => {
@@ -386,14 +403,6 @@ document.addEventListener('DOMContentLoaded', () => {
              });
          };
 
-        ui.scrollToBottom = () => {
-            setTimeout(() => {
-                if (E.gameOutputDiv) {
-                    E.gameOutputDiv.scrollTop = E.gameOutputDiv.scrollHeight;
-                }
-            }, 0);
-        };
-        
         // 组合管理相关UI函数
         ui.updateComboSelector = () => {
             const S = GameApp.state;
@@ -765,7 +774,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const L = GameApp.logic;
         const ui = GameApp.ui;
 
-        E.sendButton.onclick = () => { const text = E.playerInput.value.trim(); if(text) L.sendPlayerMessage(text); };
+        E.sendButton.onclick = () => { const text = E.playerInput.value.trim(); if(text) { S.autoScrollEnabled = true; L.sendPlayerMessage(text); } };
         E.playerInput.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); E.sendButton.click(); }};
         E.playerInput.oninput = () => ui.autoResizeTextarea(E.playerInput);
 
@@ -1000,6 +1009,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 刷新UI以确保数据同步
         ui.refreshUI();
+
+        // 初始化滚动监听：当用户离开底部一定阈值时，暂停自动滚动
+        if (E.gameOutputDiv) {
+            const nearBottom = () => {
+                const { scrollTop, scrollHeight, clientHeight } = E.gameOutputDiv;
+                return (scrollHeight - (scrollTop + clientHeight)) < 40; // 距离底部小于40px视为在底部
+            };
+            // 刷新后同步一次初值
+            S.autoScrollEnabled = nearBottom();
+            E.gameOutputDiv.addEventListener('scroll', debounce(() => {
+                S.autoScrollEnabled = nearBottom();
+            }, 100));
+        }
 
         ui.toggleProviderSettings();
         ui.scrollToBottom();

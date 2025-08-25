@@ -230,7 +230,7 @@ body {
 .game-container {
     width: 100%;
     max-width: 1400px;
-    min-height: calc(100dvh - 40px);
+    height: calc(100dvh - 40px);
     background: var(--card-bg);
     border-radius: var(--border-radius-2xl);
     box-shadow: var(--shadow-strong);
@@ -356,6 +356,7 @@ body {
     overflow: hidden;
     gap: var(--spacing-lg);
     margin-bottom: var(--spacing-sm);
+    min-height: 0; /* 允许子容器按需收缩并在内部滚动 */
 }
 
 .dialogue-area {
@@ -364,6 +365,7 @@ body {
     flex-direction: column;
     overflow: hidden; 
     min-width: 0;
+    min-height: 0;
 }
 
 .game-output {
@@ -378,6 +380,9 @@ body {
     gap: var(--spacing-lg);
     position: relative;
     animation: contentFadeIn 0.5s ease-out;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
 .game-output::before {
@@ -420,6 +425,7 @@ body {
     display: flex;
     flex-direction: column;
     position: relative;
+    scroll-behavior: smooth;
 }
 
 .status-bar-area::before {
@@ -460,6 +466,7 @@ body {
     overflow-y: auto;
     padding: var(--spacing-sm) 0;
     animation: contentFadeIn 0.4s ease-out;
+    scroll-behavior: smooth;
 }
 
 .status-bar-content::-webkit-scrollbar {
@@ -1617,7 +1624,7 @@ input[type="range"]:hover::-moz-range-thumb {
     }
     .game-container {
         padding: var(--spacing-lg);
-        min-height: calc(100dvh - 20px);
+        height: calc(100dvh - 20px); /* 固定容器高度，防止无限扩展 */
         border-radius: var(--border-radius-lg);
     }
     
@@ -1678,7 +1685,7 @@ input[type="range"]:hover::-moz-range-thumb {
     }
     .game-output {
         padding: var(--spacing-lg);
-        min-height: 300px;
+        min-height: 0; /* 在固定布局下由父容器和弹性布局控制滚动 */
     }
     .message-content-wrapper {
         font-size: 1rem;
