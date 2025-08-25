@@ -1706,7 +1706,11 @@ input[type="range"]:hover::-moz-range-thumb {
     .input-actions-container .btn {
         flex: 1;
         justify-content: center;
-        min-width: 0;
+        font-size: 0.75rem;
+        padding: var(--spacing-xs) var(--spacing-xs);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     #playerInput {
         min-height: 80px;
