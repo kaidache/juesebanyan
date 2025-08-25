@@ -82,6 +82,11 @@ document.addEventListener('DOMContentLoaded', () => {
         E.renameComboBtn = document.getElementById('renameComboBtn');
         E.deleteComboBtn = document.getElementById('deleteComboBtn');
         
+        // 设备模式切换相关元素
+        E.deviceModeToggleBtn = document.getElementById('deviceModeToggleBtn');
+        E.deviceIcon = E.deviceModeToggleBtn?.querySelector('.device-icon');
+        E.deviceText = E.deviceModeToggleBtn?.querySelector('.device-text');
+        
 
         
 
@@ -748,6 +753,41 @@ document.addEventListener('DOMContentLoaded', () => {
             E.playerAvatarUrlInput.value = S.currentPlayerAvatar.startsWith('data:image') ? '' : S.currentPlayerAvatar;
             E.aiAvatarUrlInput.value = S.currentAiAvatar.startsWith('data:image') ? '' : S.currentAiAvatar;
         };
+
+        // 设备模式切换相关函数
+        ui.toggleDeviceMode = () => {
+            const body = document.body;
+            const isMobileMode = body.classList.contains('mobile-mode');
+            
+            if (isMobileMode) {
+                // 切换到默认端
+                body.classList.remove('mobile-mode');
+                E.deviceIcon.textContent = '💻';
+                E.deviceText.textContent = '默认端';
+                localStorage.setItem('deviceMode', 'desktop');
+            } else {
+                // 切换到手机端
+                body.classList.add('mobile-mode');
+                E.deviceIcon.textContent = '📱';
+                E.deviceText.textContent = '手机端';
+                localStorage.setItem('deviceMode', 'mobile');
+            }
+        };
+
+        ui.initializeDeviceMode = () => {
+            const savedMode = localStorage.getItem('deviceMode') || 'desktop';
+            const body = document.body;
+            
+            if (savedMode === 'mobile') {
+                body.classList.add('mobile-mode');
+                E.deviceIcon.textContent = '📱';
+                E.deviceText.textContent = '手机端';
+            } else {
+                body.classList.remove('mobile-mode');
+                E.deviceIcon.textContent = '💻';
+                E.deviceText.textContent = '默认端';
+            }
+        };
     };
 
     const bindEventListeners = () => {
@@ -954,6 +994,11 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
         
+        // 设备模式切换事件监听器
+        if (E.deviceModeToggleBtn) {
+            E.deviceModeToggleBtn.onclick = ui.toggleDeviceMode;
+        }
+        
         // 组合管理模态框的外部点击关闭已在上面的window.onclick中处理
     };
 
@@ -991,6 +1036,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 初始化组合选择器
         ui.updateComboSelector();
+        
+        // 初始化设备模式
+        ui.initializeDeviceMode();
         
         // 刷新UI以确保数据同步
         ui.refreshUI();

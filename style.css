@@ -1920,3 +1920,296 @@ input[type="range"]:hover::-moz-range-thumb {
         background-color: var(--panel-bg);
     }
 }
+
+/* 设备模式切换按钮样式 */
+.device-mode-toggle {
+    position: relative;
+}
+
+.btn-device-toggle {
+    background: linear-gradient(135deg, var(--primary-color), var(--accent-color)) !important;
+    color: white !important;
+    border: 1px solid var(--primary-color) !important;
+    padding: var(--spacing-xs) var(--spacing-md) !important;
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    border-radius: var(--border-radius-lg) !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: var(--spacing-xs) !important;
+    transition: all var(--transition-normal) !important;
+    box-shadow: var(--shadow-sm) !important;
+    min-height: 36px !important;
+    white-space: nowrap !important;
+}
+
+.btn-device-toggle:hover {
+    background: linear-gradient(135deg, var(--primary-hover), var(--accent-hover)) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.btn-device-toggle:active {
+    transform: translateY(0) !important;
+    box-shadow: var(--shadow-sm) !important;
+}
+
+.device-icon {
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.device-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+/* 手机端模式样式 */
+body.mobile-mode {
+    --spacing-xs: 3px;
+    --spacing-sm: 5px;
+    --spacing-md: 8px;
+    --spacing-lg: 10px;
+    --spacing-xl: 12px;
+    --spacing-2xl: 16px;
+    --spacing-3xl: 20px;
+    --avatar-size: 32px;
+}
+
+body.mobile-mode .game-container {
+    height: 100vh;
+    max-width: 100%;
+    border-radius: 0;
+    padding: var(--spacing-md);
+    margin: 0;
+    box-shadow: none;
+    border: none;
+}
+
+body.mobile-mode .game-title-header {
+    margin-bottom: var(--spacing-sm);
+    padding-bottom: var(--spacing-xs);
+}
+
+body.mobile-mode .header-actions {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    align-items: stretch;
+}
+
+body.mobile-mode .header-actions h1 {
+    font-size: 1.25rem;
+    text-align: center;
+    margin-bottom: var(--spacing-xs);
+}
+
+body.mobile-mode .prompt-combo-section {
+    order: 1;
+    justify-content: center;
+    padding: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+}
+
+body.mobile-mode .header-buttons-container {
+    order: 2;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-xs);
+    width: 100%;
+}
+
+body.mobile-mode .device-mode-toggle {
+    grid-column: 1 / -1;
+    margin-bottom: var(--spacing-xs);
+}
+
+body.mobile-mode .btn {
+    padding: var(--spacing-md) var(--spacing-sm) !important;
+    font-size: 0.8rem !important;
+    min-height: 44px !important;
+    touch-action: manipulation;
+}
+
+body.mobile-mode .btn-device-toggle {
+    justify-content: center !important;
+    width: 100% !important;
+}
+
+body.mobile-mode .game-main-interface {
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+body.mobile-mode .status-bar-area {
+    order: 2;
+    max-width: 100%;
+}
+
+body.mobile-mode .dialogue-area {
+    order: 1;
+    min-height: 40vh;
+}
+
+body.mobile-mode .game-output {
+    padding: var(--spacing-md);
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+body.mobile-mode .message {
+    margin-bottom: var(--spacing-md) !important;
+    padding: var(--spacing-md) !important;
+}
+
+body.mobile-mode .message-content {
+    font-size: 0.9rem !important;
+    line-height: 1.5 !important;
+}
+
+body.mobile-mode .message-avatar {
+    width: var(--avatar-size) !important;
+    height: var(--avatar-size) !important;
+    min-width: var(--avatar-size) !important;
+}
+
+body.mobile-mode .input-container {
+    gap: var(--spacing-xs);
+    padding: var(--spacing-sm);
+    background: var(--panel-bg);
+    border-radius: var(--border-radius-lg);
+    margin-top: var(--spacing-sm);
+}
+
+body.mobile-mode .input-area-wrapper {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+body.mobile-mode .input-actions-container {
+    display: flex;
+    gap: var(--spacing-xs);
+    width: 100%;
+}
+
+body.mobile-mode .input-actions-container .btn {
+    flex: 1;
+    font-size: 0.75rem !important;
+    padding: var(--spacing-sm) var(--spacing-xs) !important;
+    min-height: 40px !important;
+}
+
+body.mobile-mode #playerInput {
+    min-height: 60px !important;
+    font-size: 1rem !important;
+    padding: var(--spacing-md) !important;
+    border-radius: var(--border-radius-md) !important;
+    resize: vertical;
+}
+
+body.mobile-mode #sendButton {
+    min-height: 50px !important;
+    font-size: 1rem !important;
+    font-weight: 600 !important;
+    padding: var(--spacing-md) var(--spacing-xl) !important;
+    border-radius: var(--border-radius-md) !important;
+    touch-action: manipulation;
+}
+
+/* 手机端模态框优化 */
+body.mobile-mode .modal-content {
+    width: 95% !important;
+    max-width: 95% !important;
+    margin: 2.5% auto !important;
+    max-height: 95vh !important;
+    border-radius: var(--border-radius-lg) !important;
+}
+
+body.mobile-mode .modal-header {
+    padding: var(--spacing-md) !important;
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.mobile-mode .modal-body {
+    padding: var(--spacing-md) !important;
+    max-height: calc(95vh - 120px) !important;
+    overflow-y: auto !important;
+}
+
+body.mobile-mode .form-group {
+    margin-bottom: var(--spacing-md) !important;
+}
+
+body.mobile-mode .form-group label {
+    font-size: 0.9rem !important;
+    margin-bottom: var(--spacing-xs) !important;
+}
+
+body.mobile-mode .form-group input,
+body.mobile-mode .form-group select,
+body.mobile-mode .form-group textarea {
+    font-size: 1rem !important;
+    padding: var(--spacing-md) !important;
+    min-height: 44px !important;
+    border-radius: var(--border-radius-md) !important;
+}
+
+body.mobile-mode .settings-tabs {
+    display: flex;
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-md);
+    overflow-x: auto;
+}
+
+body.mobile-mode .tab-button {
+    min-height: 44px !important;
+    padding: var(--spacing-sm) var(--spacing-md) !important;
+    font-size: 0.9rem !important;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* 手机端滚动条优化 */
+body.mobile-mode ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+body.mobile-mode ::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+body.mobile-mode ::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 2px;
+}
+
+/* 手机端触控反馈 */
+body.mobile-mode button:active,
+body.mobile-mode .btn:active {
+    transform: scale(0.98) !important;
+    transition: transform 0.1s ease !important;
+}
+
+/* 手机端文本选择优化 */
+body.mobile-mode .message-content {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+}
+
+/* 手机端状态栏优化 */
+body.mobile-mode .status-bar-content {
+    font-size: 0.8rem !important;
+    line-height: 1.4 !important;
+    padding: var(--spacing-sm) !important;
+    max-height: 200px !important;
+    overflow-y: auto !important;
+}
+
+body.mobile-mode .status-bar-toggle {
+    font-size: 0.9rem !important;
+    padding: var(--spacing-md) !important;
+    min-height: 44px !important;
+    touch-action: manipulation;
+}
