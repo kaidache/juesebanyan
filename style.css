@@ -230,7 +230,7 @@ body {
 .game-container {
     width: 100%;
     max-width: 1400px;
-    height: calc(100vh - 40px);
+    min-height: calc(100dvh - 40px);
     background: var(--card-bg);
     border-radius: var(--border-radius-2xl);
     box-shadow: var(--shadow-strong);
@@ -240,7 +240,7 @@ body {
     padding: var(--spacing-3xl);
     backdrop-filter: blur(20px);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .game-container::before {
@@ -1617,7 +1617,7 @@ input[type="range"]:hover::-moz-range-thumb {
     }
     .game-container {
         padding: var(--spacing-lg);
-        height: calc(100vh - 20px);
+        min-height: calc(100dvh - 20px);
         border-radius: var(--border-radius-lg);
     }
     
