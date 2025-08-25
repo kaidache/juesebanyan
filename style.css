@@ -1163,10 +1163,14 @@ input[type="range"]:hover::-moz-range-thumb {
     background-color: var(--accent-color); 
     color: var(--dark-bg);
     width: auto;
-    padding: var(--spacing-sm) var(--spacing-md);
+    padding: 8px 12px;
     min-width: auto;
     flex-shrink: 0;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 .btn-action:hover:not(:disabled) { background-color: #8eceda; }
 .btn-small { padding: 8px 12px; font-size: 0.85em; text-transform: none; height: auto;}
@@ -1631,6 +1635,9 @@ input[type="range"]:hover::-moz-range-thumb {
         padding: var(--spacing-lg);
         height: calc(100vh - 20px);
         border-radius: var(--border-radius-lg);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
     }
     
     /* 移动端按钮布局优化 */
@@ -1678,19 +1685,29 @@ input[type="range"]:hover::-moz-range-thumb {
     .game-main-interface {
         flex-direction: column;
         gap: var(--spacing-lg);
+        flex: 1;
+        min-height: 0;
+        overflow: hidden;
     }
     .status-bar-area {
         width: 100%;
         order: 2;
         max-height: 250px;
         padding: var(--spacing-md);
+        flex-shrink: 0;
     }
     .dialogue-area {
         order: 1;
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
     }
     .game-output {
         padding: var(--spacing-lg);
-        min-height: 300px;
+        flex: 1;
+        min-height: 0;
+        height: auto;
     }
     .message-content-wrapper {
         font-size: 1rem;
@@ -1740,11 +1757,16 @@ input[type="range"]:hover::-moz-range-thumb {
     
     /* 推进剧情按钮移动端优化 */
     .btn-action {
-        padding: var(--spacing-xs) var(--spacing-sm);
+        padding: 6px 10px;
         font-size: 0.8rem;
         min-height: 36px;
         width: auto;
+        min-width: auto;
         flex: 0 0 auto;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
     #playerInput {
         min-height: 80px;
