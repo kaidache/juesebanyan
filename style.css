@@ -87,27 +87,34 @@
     position: absolute;
     top: 12px;
     right: 16px;
-    z-index: 1002;
+    z-index: 10001; /* 提高层级确保不被覆盖 */
     display: flex;
     align-items: center;
     gap: 6px;
     background: var(--panel-bg);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-md);
-    padding: 6px 8px;
+    padding: 8px 10px; /* 增大触摸区域 */
     box-shadow: var(--shadow-sm);
+    pointer-events: auto; /* 确保指针事件可用 */
+    touch-action: manipulation; /* 优化触摸交互 */
+    min-height: 40px; /* 确保足够的触摸高度 */
 }
 .display-mode-toggle .mode-label {
     color: var(--text-color-secondary);
-    font-size: 12px;
+    font-size: 13px; /* 稍微增大字体 */
+    pointer-events: none; /* 标签不拦截点击 */
 }
 .display-mode-toggle .mode-select {
     background: var(--card-bg);
     color: var(--text-color);
     border: 1px solid var(--border-color);
     border-radius: var(--border-radius-sm);
-    padding: 4px 8px;
-    font-size: 12px;
+    padding: 6px 10px; /* 增大选择框触摸区域 */
+    font-size: 13px;
+    min-height: 32px; /* 确保足够的触摸高度 */
+    cursor: pointer;
+    touch-action: manipulation;
 }
 
 /* 强制手机端样式：通过 body.mobile-mode 开关 */
@@ -222,10 +229,14 @@ body.mobile-mode .status-bar-toggle {
 /* 小屏适配该切换控件位置，避免遮挡 */
 @media (max-width: 600px) {
     .display-mode-toggle {
-        top: 8px;
-        right: 8px;
+        top: 6px;
+        right: 6px;
         transform: scale(0.95);
     }
+    /* 避免 header 和顶部渐变影响点击 */
+    .game-title-header,
+    .game-output { position: relative; }
+    .game-title-header * { pointer-events: auto; }
 }
 
 * {
@@ -1763,6 +1774,7 @@ input[type="range"]:hover::-moz-range-thumb {
     }
     .game-container {
         padding: var(--spacing-lg);
+        padding-top: calc(var(--spacing-lg) + 44px); /* 为右上角切换控件预留顶部空间 */
         height: calc(100vh - 20px);
         border-radius: var(--border-radius-lg);
     }
