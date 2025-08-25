@@ -18,8 +18,9 @@ document.addEventListener('DOMContentLoaded', () => {
         E.gameOutputDiv = document.getElementById('gameOutput');
         E.playerInput = document.getElementById('playerInput');
         E.sendButton = document.getElementById('sendButton');
-        E.advancePlotBtn = document.getElementById('advancePlotBtn');
-        E.advancePlotMajorBtn = document.getElementById('advancePlotMajorBtn');
+        // 删除：输入区域的推进剧情按钮（已迁移到消息内）
+        // E.advancePlotBtn = document.getElementById('advancePlotBtn');
+        // E.advancePlotMajorBtn = document.getElementById('advancePlotMajorBtn');
         E.statusBarPre = document.getElementById('statusBar');
         E.editAvatarsBtn = document.getElementById('editAvatarsBtn');
         E.clearHistoryBtn = document.getElementById('clearHistoryBtn');
@@ -209,6 +210,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     actionsDiv.appendChild(createActionButton("刷新", "让AI重新生成此条回复", createGuardedAction(() => L.refreshAiMessage(id))));
                     actionsDiv.appendChild(createActionButton("复制", "复制消息内容", () => L.copyMessageContent(id)));
                     actionsDiv.appendChild(createActionButton("删除", "删除此条消息", createGuardedAction(() => L.deleteMessage(id, 'assistant'))));
+                    // 新增：将“推进剧情”和“⼤幅度推进剧情”移动到AI消息下方的功能按钮
+                    actionsDiv.appendChild(createActionButton("（推进剧情）", "向AI发送一个通用指令，让故事继续发展。", createGuardedAction(() => L.sendPlayerMessage('（推进剧情）'))));
+                    actionsDiv.appendChild(createActionButton("（大幅度推进剧情）", "向AI发送一个指令，让故事发生较大或意想不到的转折。", createGuardedAction(() => L.sendPlayerMessage('（大幅度推进剧情）'))));
                     contentWrapper.appendChild(actionsDiv);
                 }
 
@@ -566,14 +570,19 @@ document.addEventListener('DOMContentLoaded', () => {
             bubble.classList.remove('is-thinking');
             const contentWrapper = bubble.querySelector('.message-content-wrapper');
             contentWrapper.querySelector('.message-text').innerHTML = formatMessageText(mainContent);
-            
+
             const actionsDiv = document.createElement('div');
             actionsDiv.className = 'message-actions';
             actionsDiv.appendChild(createActionButton("编辑", "编辑此条AI回复", createGuardedAction(() => ui.toggleEditState(messageData.id, 'assistant', true))));
             actionsDiv.appendChild(createActionButton("刷新", "让AI重新生成此条回复", createGuardedAction(() => L.refreshAiMessage(messageData.id))));
             actionsDiv.appendChild(createActionButton("复制", "复制消息内容", () => L.copyMessageContent(messageData.id)));
             actionsDiv.appendChild(createActionButton("删除", "删除此条消息", createGuardedAction(() => L.deleteMessage(messageData.id, 'assistant'))));
-            
+            // 新增：将“推进剧情”和“⼤幅度推进剧情”移动到AI消息下方的功能按钮
+            actionsDiv.appendChild(createActionButton("（推进剧情）", "向AI发送一个通用指令，让故事继续发展。", createGuardedAction(() => L.sendPlayerMessage('（推进剧情）'))));
+            actionsDiv.appendChild(createActionButton("（大幅度推进剧情）", "向AI发送一个指令，让故事发生较大或意想不到的转折。", createGuardedAction(() => L.sendPlayerMessage('（大幅度推进剧情）'))));
+
+            contentWrapper.appendChild(actionsDiv);
+
             if(messageData.model){
                 const modelSpan = document.createElement('span');
                 modelSpan.className = 'model-name';
@@ -763,9 +772,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const createGuardedQuickAction = (message) => {
             return createGuardedAction(() => L.sendPlayerMessage(message));
         };
-
-        E.advancePlotBtn.onclick = createGuardedQuickAction('（推进剧情）');
-        E.advancePlotMajorBtn.onclick = createGuardedQuickAction('（大幅度推进剧情）');
 
         E.clearHistoryBtn.onclick = createGuardedAction(() => {
             if (confirm('你确定要清空当前组合的对话记录和总结吗？这个操作无法撤销。')) {

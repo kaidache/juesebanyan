@@ -50,9 +50,7 @@
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.5);
-            pointer-events: none; /* 默认不拦截点击，显示时再启用 */
         }
-        .combo-manage-modal[style*="display: block"] { pointer-events: auto; }
         
         .combo-manage-content {
             background-color: #fefefe;
@@ -181,15 +179,7 @@
 <body>
 
     <div class="game-container">
-        <!-- 新增：界面模式切换（右上角） -->
-        <div class="display-mode-toggle" title="切换界面模式">
-            <label for="displayModeSelect" class="mode-label">界面:</label>
-            <select id="displayModeSelect" class="mode-select">
-                <option value="default">默认端</option>
-                <option value="mobile">手机端</option>
-            </select>
-        </div>
-        <!-- 原有内容 -->
+
         <header class="game-title-header">
             <div class="header-actions">
                 <h1>简易ai扮演模拟器</h1>
@@ -224,8 +214,7 @@
         <div class="input-container">
             <div class="input-area-wrapper">
                 <div class="input-actions-container">
-                    <button id="advancePlotBtn" class="btn btn-action" title="向AI发送一个通用指令，让故事继续发展。">（推进剧情）</button>
-                    <button id="advancePlotMajorBtn" class="btn btn-action" title="向AI发送一个指令，让故事发生较大或意想不到的转折。">（大幅度推进剧情）</button>
+                    
                 </div>
                 <textarea id="playerInput" placeholder="输入你的行动或对话... (Shift+Enter 换行)" rows="1"></textarea>
             </div>
@@ -438,15 +427,14 @@
     <script src="ui_handlers.js"></script>
 
     <script>
-        // 状态栏折叠/展开逻辑（更新以支持强制手机端模式）
+        // 状态栏折叠/展开逻辑
         document.addEventListener('DOMContentLoaded', function(){
             const statusBarArea = document.getElementById('statusBarArea');
             const toggleBtn = document.getElementById('statusBarToggleBtn');
             const mq = window.matchMedia("(max-width: 900px)");
             
             function updateInitialState(){
-                const forcedMobile = document.body.classList.contains('mobile-mode');
-                if(forcedMobile || mq.matches){
+                if(mq.matches){
                     statusBarArea.classList.add('status-bar-collapsed');
                     toggleBtn.textContent = "➕ 显示状态栏";
                 }else{
@@ -465,40 +453,6 @@
                     toggleBtn.textContent = "➖ 收起状态栏";
                 }
             });
-        });
-    </script>
-
-    <script>
-        // 新增：界面模式切换（默认端/手机端）
-        document.addEventListener('DOMContentLoaded', function(){
-            const select = document.getElementById('displayModeSelect');
-            const STATUS_BAR_AREA = document.getElementById('statusBarArea');
-            const STATUS_TOGGLE_BTN = document.getElementById('statusBarToggleBtn');
-            const KEY = 'displayMode';
-
-            function applyMode(mode){
-                const isMobile = mode === 'mobile';
-                document.body.classList.toggle('mobile-mode', isMobile);
-                localStorage.setItem(KEY, mode);
-                // 同步状态栏初始状态
-                if (STATUS_BAR_AREA && STATUS_TOGGLE_BTN){
-                    if (isMobile){
-                        STATUS_BAR_AREA.classList.add('status-bar-collapsed');
-                        STATUS_TOGGLE_BTN.textContent = '➕ 显示状态栏';
-                    } else {
-                        STATUS_BAR_AREA.classList.remove('status-bar-collapsed');
-                        STATUS_TOGGLE_BTN.textContent = '➖ 收起状态栏';
-                    }
-                }
-            }
-
-            // 初始化
-            const saved = localStorage.getItem(KEY) || 'default';
-            select.value = saved;
-            applyMode(saved);
-
-            // 监听切换
-            select.addEventListener('change', () => applyMode(select.value));
         });
     </script>
 </body>
