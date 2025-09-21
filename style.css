@@ -1165,6 +1165,8 @@ input[type="range"]:hover::-moz-range-thumb {
 .btn-action { background-color: var(--accent-color); color: var(--dark-bg); }
 .btn-action:hover:not(:disabled) { background-color: #8eceda; }
 .btn-small { padding: 8px 12px; font-size: 0.85em; text-transform: none; height: auto;}
+.btn-danger { background-color: #e11d48; color: #fff; border: 1px solid #e11d48; }
+.btn-danger:hover:not(:disabled) { background-color: #be123c; border-color: #be123c; }
 
 .status-message { margin-top: 10px; font-size: 0.85em; text-align: center; }
 .status-message.success { color: var(--success-color); }
@@ -1718,6 +1720,7 @@ input[type="range"]:hover::-moz-range-thumb {
         font-size: 16px; /* 防止iOS缩放 */
     }
     #sendButton { width: 100%; }
+    #cancelButton { width: 100%; }
     .main-settings-toggle-btn {
         top: var(--spacing-sm);
         right: var(--spacing-sm);

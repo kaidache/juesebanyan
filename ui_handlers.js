@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
         E.gameOutputDiv = document.getElementById('gameOutput');
         E.playerInput = document.getElementById('playerInput');
         E.sendButton = document.getElementById('sendButton');
+        E.cancelButton = document.getElementById('cancelButton');
         // 删除：输入区域的推进剧情按钮（已迁移到消息内）
         // E.advancePlotBtn = document.getElementById('advancePlotBtn');
         // E.advancePlotMajorBtn = document.getElementById('advancePlotMajorBtn');
@@ -82,6 +83,16 @@ document.addEventListener('DOMContentLoaded', () => {
         E.newComboBtn = document.getElementById('addComboBtn');
         E.renameComboBtn = document.getElementById('renameComboBtn');
         E.deleteComboBtn = document.getElementById('deleteComboBtn');
+        
+        // API Key 档案管理相关元素
+        E.apiKeyProfileSelect = document.getElementById('apiKeyProfileSelect');
+        E.manageApiKeyProfilesBtn = document.getElementById('manageApiKeyProfilesBtn');
+        E.apiKeyProfileManageModal = document.getElementById('apiKeyProfileManageModal');
+        E.closeApiKeyProfileManageModalBtn = document.getElementById('closeApiKeyProfileManageModalBtn');
+        E.apiKeyProfileListDiv = document.getElementById('apiKeyProfileList');
+        E.addApiKeyProfileBtn = document.getElementById('addApiKeyProfileBtn');
+        E.renameApiKeyProfileBtn = document.getElementById('renameApiKeyProfileBtn');
+        E.deleteApiKeyProfileBtn = document.getElementById('deleteApiKeyProfileBtn');
         
 
         
@@ -533,7 +544,19 @@ document.addEventListener('DOMContentLoaded', () => {
         
         ui.clearPlayerInput = () => { E.playerInput.value = ''; ui.autoResizeTextarea(E.playerInput); };
         
-        ui.setSendButtonState = (enabled) => { E.sendButton.disabled = !enabled; E.sendButton.textContent = enabled ? '发送' : '思考中...'; };
+        ui.setSendButtonState = (enabled) => { 
+          E.sendButton.disabled = !enabled; 
+          E.sendButton.textContent = enabled ? '发送' : '思考中...'; 
+          if (ui.updateCancelVisibility) ui.updateCancelVisibility();
+        };
+        // 在 UI 中新增：根据当前状态显示/隐藏“中断”按钮
+        ui.updateCancelVisibility = () => {
+          const S = GameApp.state;
+          if (!E.cancelButton) return;
+          const shouldShow = !!(S.isAiResponding || S.isSummarizing);
+          E.cancelButton.style.display = shouldShow ? '' : 'none';
+          E.cancelButton.disabled = !shouldShow ? false : false;
+        };
         
         ui.autoResizeTextarea = debounce((textarea) => {
             if (!textarea) return;
@@ -777,11 +800,33 @@ document.addEventListener('DOMContentLoaded', () => {
         E.sendButton.onclick = () => { const text = E.playerInput.value.trim(); if(text) { S.autoScrollEnabled = true; L.sendPlayerMessage(text); } };
         E.playerInput.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); E.sendButton.click(); }};
         E.playerInput.oninput = () => ui.autoResizeTextarea(E.playerInput);
-
-        const createGuardedQuickAction = (message) => {
-            return createGuardedAction(() => L.sendPlayerMessage(message));
-        };
-
+        // 绑定中断按钮：可中断当前 AI 回复或总结
+        if (E.cancelButton) {
+          E.cancelButton.onclick = () => {
+            const S = GameApp.state;
+            try {
+              if (S.isAiResponding && S.currentAbortController) {
+                S.currentAbortController.abort();
+              }
+              if (S.isSummarizing && S.summaryAbortController) {
+                S.summaryAbortController.abort();
+                GameApp.ui.showSystemMessage({ text: '总结已中断。', type: 'system-message summary-notification warning' });
+              }
+            } catch (err) {
+              console.warn('中断操作异常:', err);
+            } finally {
+              // 立即恢复输入态，并主动复位状态以便立刻可再次发送
+              S.isAiResponding = false;
+              S.currentAbortController = null;
+              S.isSummarizing = false;
+              S.summaryAbortController = null;
+              ui.setSendButtonState(true);
+              ui.updateCancelVisibility();
+            }
+          };
+        }
+        // 初始化时同步一次中断按钮显示
+        if (ui.updateCancelVisibility) ui.updateCancelVisibility();
         E.clearHistoryBtn.onclick = createGuardedAction(() => {
             if (confirm('你确定要清空当前组合的对话记录和总结吗？这个操作无法撤销。')) {
                 L.clearHistory();
@@ -817,6 +862,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if(event.target === E.promptSettingsModal) E.promptSettingsModal.style.display = 'none'; 
             if(event.target === E.avatarEditModal) E.avatarEditModal.style.display = 'none';
             if(event.target === E.comboManageModal) E.comboManageModal.style.display = 'none'; 
+            if(event.target === E.apiKeyProfileManageModal) E.apiKeyProfileManageModal.style.display = 'none';
         };
 
         E.tabButtons.forEach(button => {
@@ -831,7 +877,8 @@ document.addEventListener('DOMContentLoaded', () => {
         E.apiProviderSelect.onchange = ui.toggleProviderSettings;
         E.saveApiSettingsBtn.onclick = () => {
             localStorage.setItem('apiProvider', E.apiProviderSelect.value);
-            localStorage.setItem('apiKey', E.apiKeyInput.value);
+            // 改为保存到当前API Key档案，并向后兼容同步localStorage
+            GameApp.logic.setCurrentProfileApiKey(E.apiKeyInput.value);
             localStorage.setItem('apiBaseUrl', E.apiBaseUrlInput.value.trim());
             localStorage.setItem('apiModel', E.apiModelInput.value.trim());
             localStorage.setItem('memoryCount', E.memoryCountInput.value);
@@ -839,6 +886,8 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('temperature', E.temperatureSlider.value);
             localStorage.setItem('topP', E.topPSlider.value);
             localStorage.setItem('topK', E.topKSlider.value);
+            ui.updateApiKeyProfileList && ui.updateApiKeyProfileList();
+            ui.updateApiKeyProfileSelector && ui.updateApiKeyProfileSelector();
             ui.showSystemMessage({ text: '主要API设置已保存！', type: 'system-message success'});
             E.apiSettingsStatus.textContent = ''; 
         };
@@ -970,6 +1019,81 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // 组合管理模态框的外部点击关闭已在上面的window.onclick中处理
+
+        // 新增：API Key 档案管理事件绑定
+        if (E.manageApiKeyProfilesBtn) {
+            E.manageApiKeyProfilesBtn.onclick = () => {
+                if (E.apiKeyProfileManageModal) {
+                    E.apiKeyProfileManageModal.style.display = 'block';
+                    if (ui.updateApiKeyProfileList) ui.updateApiKeyProfileList();
+                }
+            };
+        }
+        if (E.closeApiKeyProfileManageModalBtn) {
+            E.closeApiKeyProfileManageModalBtn.onclick = () => {
+                if (E.apiKeyProfileManageModal) E.apiKeyProfileManageModal.style.display = 'none';
+            };
+        }
+        if (E.apiKeyProfileSelect) {
+            E.apiKeyProfileSelect.onchange = () => {
+                const targetId = E.apiKeyProfileSelect.value;
+                if (targetId && targetId !== S.currentApiKeyProfileId) {
+                    L.switchToApiKeyProfile(targetId);
+                    if (ui.updateApiKeyProfileSelector) ui.updateApiKeyProfileSelector();
+                    if (ui.updateApiKeyProfileList) ui.updateApiKeyProfileList();
+                    if (E.apiKeyInput) E.apiKeyInput.value = L.getCurrentApiKey();
+                    ui.showSystemMessage({ text: '已切换到新的 API Key 档案。', type: 'system-message success' });
+                }
+            };
+        }
+        if (E.addApiKeyProfileBtn) {
+            E.addApiKeyProfileBtn.onclick = async () => {
+                const count = Object.keys(S.apiKeyProfiles || {}).length;
+                const name = await ui.showInputDialog('请输入新 Key 档案名称：', `Key档案 ${count + 1}`);
+                if (name && name.trim()) {
+                    const newId = L.createNewApiKeyProfile(name.trim());
+                    L.switchToApiKeyProfile(newId);
+                    if (ui.updateApiKeyProfileSelector) ui.updateApiKeyProfileSelector();
+                    if (ui.updateApiKeyProfileList) ui.updateApiKeyProfileList();
+                    if (E.apiKeyInput) E.apiKeyInput.value = L.getCurrentApiKey();
+                    ui.showSystemMessage({ text: `新 Key 档案 "${name.trim()}" 已创建并切换。`, type: 'system-message success' });
+                }
+            };
+        }
+        if (E.renameApiKeyProfileBtn) {
+            E.renameApiKeyProfileBtn.onclick = async () => {
+                const current = S.apiKeyProfiles[S.currentApiKeyProfileId];
+                const newName = await ui.showInputDialog('请输入新的 Key 档案名称：', current?.name || '未命名');
+                if (newName && newName.trim() && newName.trim() !== current?.name) {
+                    L.renameApiKeyProfile(S.currentApiKeyProfileId, newName.trim());
+                    if (ui.updateApiKeyProfileSelector) ui.updateApiKeyProfileSelector();
+                    if (ui.updateApiKeyProfileList) ui.updateApiKeyProfileList();
+                    ui.showSystemMessage({ text: `Key 档案已重命名为 "${newName.trim()}"`, type: 'system-message success' });
+                }
+            };
+        }
+        if (E.deleteApiKeyProfileBtn) {
+            E.deleteApiKeyProfileBtn.onclick = () => {
+                const total = Object.keys(S.apiKeyProfiles || {}).length;
+                if (total <= 1) {
+                    ui.showSystemMessage({ text: '至少需要保留一个 Key 档案！', type: 'system-message error' });
+                    return;
+                }
+                const current = S.apiKeyProfiles[S.currentApiKeyProfileId];
+                if (confirm(`确定要删除当前 Key 档案 "${current?.name || ''}" 吗？此操作不可撤销！`)) {
+                    L.deleteApiKeyProfile(S.currentApiKeyProfileId);
+                    if (ui.updateApiKeyProfileSelector) ui.updateApiKeyProfileSelector();
+                    if (ui.updateApiKeyProfileList) ui.updateApiKeyProfileList();
+                    if (E.apiKeyInput) E.apiKeyInput.value = L.getCurrentApiKey();
+                    ui.showSystemMessage({ text: '当前 Key 档案已删除。', type: 'system-message success' });
+                }
+            };
+        }
+        if (E.apiKeyInput) {
+            E.apiKeyInput.oninput = () => {
+                L.setCurrentProfileApiKey(E.apiKeyInput.value);
+            };
+        }
     };
 
     const initializeApp = () => {
@@ -982,7 +1106,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const S = GameApp.state;
         const ui = GameApp.ui;
 
-        E.apiKeyInput.value = localStorage.getItem('apiKey') || '';
+        E.apiKeyInput.value = GameApp.logic.getCurrentApiKey();
+        // 新增：初始化刷新 API Key 档案下拉与列表
+        if (ui.updateApiKeyProfileSelector) ui.updateApiKeyProfileSelector();
+        if (ui.updateApiKeyProfileList) ui.updateApiKeyProfileList();
+
         E.apiBaseUrlInput.value = localStorage.getItem('apiBaseUrl') || '';
         E.apiModelInput.value = localStorage.getItem('apiModel') || 'gpt-3.5-turbo';
         E.memoryCountInput.value = localStorage.getItem('memoryCount') || '20';
@@ -1004,29 +1132,71 @@ document.addEventListener('DOMContentLoaded', () => {
         E.summaryPromptTextarea.value = S.currentSummaryPromptText;
         E.summaryContentDisplay.value = S.accumulatedSummaryContent;
         
-        // 初始化组合选择器
-        ui.updateComboSelector();
-        
-        // 刷新UI以确保数据同步
-        ui.refreshUI();
-
-        // 初始化滚动监听：当用户离开底部一定阈值时，暂停自动滚动
-        if (E.gameOutputDiv) {
-            const nearBottom = () => {
-                const { scrollTop, scrollHeight, clientHeight } = E.gameOutputDiv;
-                return (scrollHeight - (scrollTop + clientHeight)) < 40; // 距离底部小于40px视为在底部
-            };
-            // 刷新后同步一次初值
-            S.autoScrollEnabled = nearBottom();
-            E.gameOutputDiv.addEventListener('scroll', debounce(() => {
-                S.autoScrollEnabled = nearBottom();
-            }, 100));
+        E.gameOutputDiv.innerHTML = '';
+        if (S.conversationHistory.length > 0) {
+            S.conversationHistory.forEach(msg => ui.addMessageToGameOutputDOM(msg));
+            ui.recalculateFloorsAndCounter();
+        } else {
+            ui.showSystemMessage({text: '当前组合暂无对话记录。', type: 'system-message', temporary: false});
         }
-
-        ui.toggleProviderSettings();
+        // 无论是否有对话历史，都需要更新状态栏
+        ui.updateStatusBarFromHistory();
+        
         ui.scrollToBottom();
-        E.playerInput.focus();
     };
 
     initializeApp();
 });
+
+// API Key 档案管理相关UI函数
+GameApp.ui.updateApiKeyProfileSelector = () => {
+    const S = GameApp.state;
+    const E = GameApp.elements;
+    if (!E.apiKeyProfileSelect) return;
+    E.apiKeyProfileSelect.innerHTML = '';
+    Object.keys(S.apiKeyProfiles || {}).forEach(id => {
+        const profile = S.apiKeyProfiles[id];
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = profile.name;
+        if (id === S.currentApiKeyProfileId) option.selected = true;
+        E.apiKeyProfileSelect.appendChild(option);
+    });
+};
+
+GameApp.ui.updateApiKeyProfileList = () => {
+    const S = GameApp.state;
+    const E = GameApp.elements;
+    if (!E.apiKeyProfileListDiv) return;
+    E.apiKeyProfileListDiv.innerHTML = '';
+    Object.keys(S.apiKeyProfiles || {}).forEach(id => {
+        const profile = S.apiKeyProfiles[id];
+        const item = document.createElement('div');
+        item.className = 'combo-item';
+        if (id === S.currentApiKeyProfileId) item.classList.add('current');
+    
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = profile.name;
+        nameSpan.className = 'combo-name';
+    
+        const infoSpan = document.createElement('span');
+        const masked = (profile.apiKey || '').replace(/.(?=.{4})/g, '*');
+        infoSpan.textContent = masked ? `(****${(profile.apiKey || '').slice(-4)})` : '(未填写)';
+        infoSpan.className = 'combo-info';
+    
+        item.appendChild(nameSpan);
+        item.appendChild(infoSpan);
+    
+        item.onclick = () => {
+            if (id !== S.currentApiKeyProfileId) {
+                GameApp.logic.switchToApiKeyProfile(id);
+                GameApp.ui.updateApiKeyProfileList();
+                GameApp.ui.updateApiKeyProfileSelector();
+                // 同步输入框显示
+                if (E.apiKeyInput) E.apiKeyInput.value = GameApp.logic.getCurrentApiKey();
+            }
+        };
+    
+        E.apiKeyProfileListDiv.appendChild(item);
+    });
+};

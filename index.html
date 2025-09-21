@@ -218,6 +218,7 @@
                 </div>
                 <textarea id="playerInput" placeholder="输入你的行动或对话... (Shift+Enter 换行)" rows="1"></textarea>
             </div>
+            <button id="cancelButton" class="btn btn-danger" style="display:none;">中断</button>
             <button id="sendButton" class="btn btn-primary">发送</button>
         </div>
     </div>
@@ -249,6 +250,14 @@
                     <div class="form-group">
                         <label for="apiKey">API Key:</label>
                         <input type="password" id="apiKey" placeholder="输入你的 API Key">
+                    </div>
+                    <!-- 新增：API Key 档案选择与管理 -->
+                    <div class="form-group">
+                        <label for="apiKeyProfileSelect" class="combo-label">API Key 档案:</label>
+                        <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="apiKeyProfileSelect" class="combo-select"></select>
+                            <button id="manageApiKeyProfilesBtn" class="btn btn-small">管理Key档案</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="apiBaseUrl">API Base URL:</label>
@@ -372,6 +381,27 @@
                     <button id="addComboBtn" class="btn btn-primary">新建组合</button>
                     <button id="renameComboBtn" class="btn btn-secondary">重命名当前组合</button>
                     <button id="deleteComboBtn" class="btn btn-danger">删除当前组合</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：API Key 档案管理面板 -->
+    <div id="apiKeyProfileManageModal" class="modal">
+        <div class="modal-content">
+            <header class="modal-header">
+                <h2>API Key 档案管理</h2>
+                <span id="closeApiKeyProfileManageModalBtn" class="close-modal-btn">&times;</span>
+            </header>
+            <div class="modal-body">
+                <div class="combo-list-section">
+                    <h3>现有 Key 档案</h3>
+                    <div id="apiKeyProfileList" class="combo-list"></div>
+                </div>
+                <div class="combo-actions-section">
+                    <button id="addApiKeyProfileBtn" class="btn btn-primary">新建Key档案</button>
+                    <button id="renameApiKeyProfileBtn" class="btn btn-secondary">重命名当前Key档案</button>
+                    <button id="deleteApiKeyProfileBtn" class="btn btn-danger">删除当前Key档案</button>
                 </div>
             </div>
         </div>

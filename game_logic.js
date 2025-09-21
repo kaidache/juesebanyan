@@ -48,6 +48,12 @@ const GameApp = {
         summarizedUntilTurnCount: 0,
         // 自动滚动控制：当用户向上滚动查看历史时置为 false，避免强制拉回底部
         autoScrollEnabled: true,
+        
+        // 新增：API Key 档案管理状态
+        currentApiKeyProfileId: 'key-1',
+        apiKeyProfiles: {
+            'key-1': { name: '默认Key', apiKey: '' }
+        },
     },
 
     config: {
@@ -164,6 +170,97 @@ const GameApp = {
             localStorage.setItem('currentComboId', state.currentComboId);
         },
 
+        saveAllApiKeyProfilesToStorage() {
+            const state = GameApp.state;
+            localStorage.setItem('apiKeyProfiles', JSON.stringify(state.apiKeyProfiles));
+            localStorage.setItem('currentApiKeyProfileId', state.currentApiKeyProfileId);
+        },
+        loadAllApiKeyProfilesFromStorage() {
+            const state = GameApp.state;
+            try {
+                const savedProfiles = localStorage.getItem('apiKeyProfiles');
+                const savedCurrentId = localStorage.getItem('currentApiKeyProfileId');
+                if (savedProfiles) {
+                    state.apiKeyProfiles = JSON.parse(savedProfiles);
+                }
+                if (savedCurrentId && state.apiKeyProfiles[savedCurrentId]) {
+                    state.currentApiKeyProfileId = savedCurrentId;
+                }
+                // 兼容旧版本：把旧的单一 apiKey 迁移到默认档案
+                const legacyKey = localStorage.getItem('apiKey') || '';
+                const currentProfile = state.apiKeyProfiles[state.currentApiKeyProfileId];
+                if (legacyKey && currentProfile && !currentProfile.apiKey) {
+                    currentProfile.apiKey = legacyKey;
+                    this.saveAllApiKeyProfilesToStorage();
+                }
+                // 确保至少有一个档案
+                if (!state.apiKeyProfiles || Object.keys(state.apiKeyProfiles).length === 0) {
+                    state.apiKeyProfiles = { 'key-1': { name: '默认Key', apiKey: legacyKey } };
+                    state.currentApiKeyProfileId = 'key-1';
+                    this.saveAllApiKeyProfilesToStorage();
+                }
+            } catch (e) {
+                console.error('加载 API Key 档案失败:', e);
+            }
+        },
+        switchToApiKeyProfile(id) {
+            const state = GameApp.state;
+            if (!state.apiKeyProfiles[id]) return;
+            state.currentApiKeyProfileId = id;
+            // 向后兼容：同步当前档案到全局localStorage
+            const k = state.apiKeyProfiles[id].apiKey || '';
+            localStorage.setItem('apiKey', k);
+            this.saveAllApiKeyProfilesToStorage();
+        },
+        createNewApiKeyProfile(name) {
+            const state = GameApp.state;
+            // 生成唯一ID
+            let newId;
+            let counter = 1;
+            do {
+                newId = 'key-' + counter;
+                counter++;
+            } while (state.apiKeyProfiles[newId]);
+            state.apiKeyProfiles[newId] = { name: name || `Key档案 ${Object.keys(state.apiKeyProfiles).length + 1}`, apiKey: '' };
+            this.saveAllApiKeyProfilesToStorage();
+            return newId;
+        },
+        renameApiKeyProfile(id, newName) {
+            const state = GameApp.state;
+            if (state.apiKeyProfiles[id]) {
+                state.apiKeyProfiles[id].name = newName;
+                this.saveAllApiKeyProfilesToStorage();
+            }
+        },
+        deleteApiKeyProfile(id) {
+            const state = GameApp.state;
+            const keys = Object.keys(state.apiKeyProfiles || {});
+            if (keys.length <= 1) return false;
+            if (!state.apiKeyProfiles[id]) return false;
+            delete state.apiKeyProfiles[id];
+            if (state.currentApiKeyProfileId === id) {
+                const firstId = Object.keys(state.apiKeyProfiles)[0];
+                state.currentApiKeyProfileId = firstId;
+                localStorage.setItem('apiKey', state.apiKeyProfiles[firstId].apiKey || '');
+            }
+            this.saveAllApiKeyProfilesToStorage();
+            return true;
+        },
+        setCurrentProfileApiKey(value) {
+            const state = GameApp.state;
+            const id = state.currentApiKeyProfileId;
+            if (!state.apiKeyProfiles[id]) return;
+            state.apiKeyProfiles[id].apiKey = value || '';
+            // 向后兼容：同步到全局localStorage
+            localStorage.setItem('apiKey', state.apiKeyProfiles[id].apiKey);
+            this.saveAllApiKeyProfilesToStorage();
+        },
+        getCurrentApiKey() {
+            const state = GameApp.state;
+            const id = state.currentApiKeyProfileId;
+            return (state.apiKeyProfiles && state.apiKeyProfiles[id] && state.apiKeyProfiles[id].apiKey) || localStorage.getItem('apiKey') || '';
+        },
+
         loadAllCombosFromStorage() {
             const state = GameApp.state;
             try {
@@ -215,6 +312,9 @@ const GameApp = {
             state.summarySettings.baseUrl = localStorage.getItem('summaryApiBaseUrl') || '';
             state.summarySettings.model = localStorage.getItem('summaryApiModel') || '';
             state.currentSummaryPromptText = localStorage.getItem('summaryPromptText') || config.defaultSummaryPrompt;
+
+            // 新增：加载 API Key 档案
+            this.loadAllApiKeyProfilesFromStorage();
 
             // 加载所有组合数据
             this.loadAllCombosFromStorage();
@@ -351,7 +451,7 @@ const GameApp = {
                 return;
             }
 
-            const apiKey = localStorage.getItem('apiKey');
+            const apiKey = this.getCurrentApiKey();
             const systemPrompt = GameApp.state.currentSystemPrompt;
             if (!apiKey || !systemPrompt) {
                 GameApp.ui.showSystemMessage({ text: "错误：请先在设置中配置API Key和核心提示词。", type: "system-message error", temporary: false });
@@ -470,7 +570,7 @@ const GameApp = {
                 let finalResponseText = null;
 
                 await adapter.chat({
-                    apiKey: localStorage.getItem('apiKey') || '',
+                    apiKey: this.getCurrentApiKey() || '',
                     baseUrl: localStorage.getItem('apiBaseUrl') || '',
                     model: modelName,
                     messages: messagesForApi,
@@ -552,6 +652,7 @@ const GameApp = {
         async performSummary(historyToSummarize, startTurn, endTurn) {
             GameApp.state.isSummarizing = true;
             GameApp.state.summaryAbortController = new AbortController();
+            if (GameApp.ui && GameApp.ui.updateCancelVisibility) GameApp.ui.updateCancelVisibility();
         
             try {
                 const mainApiKey = localStorage.getItem('apiKey') || '';
@@ -620,6 +721,7 @@ const GameApp = {
            } finally {
                 GameApp.state.summaryAbortController = null;
                 GameApp.state.isSummarizing = false; // This is now guaranteed to run
+                if (GameApp.ui && GameApp.ui.updateCancelVisibility) GameApp.ui.updateCancelVisibility();
            }
        },
         
@@ -629,7 +731,7 @@ const GameApp = {
             
             const historyEntry = GameApp.state.conversationHistory[msgIndex];
             historyEntry.content = newText;
-            historyEntry.statusBarContent = this.extractStatusBarContent(newText);
+            historyEntry.statusBarContent = this.extractStatusBarFromMainContent(newText);
             
             GameApp.ui.updateMessageContent(messageId, newText);
             GameApp.ui.updateStatusBarFromHistory();
