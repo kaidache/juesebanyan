@@ -1110,6 +1110,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 新增：初始化刷新 API Key 档案下拉与列表
         if (ui.updateApiKeyProfileSelector) ui.updateApiKeyProfileSelector();
         if (ui.updateApiKeyProfileList) ui.updateApiKeyProfileList();
+        
+        // 修复：初始化刷新提示词组合下拉选项
+        if (ui.updateComboSelector) ui.updateComboSelector();
 
         E.apiBaseUrlInput.value = localStorage.getItem('apiBaseUrl') || '';
         E.apiModelInput.value = localStorage.getItem('apiModel') || 'gpt-3.5-turbo';
