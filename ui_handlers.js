@@ -540,7 +540,13 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.updateStatusBar("游戏尚未开始或无状态信息。", null);
         };
         
-        ui.updateSummaryContentDisplay = text => { if (E.summaryContentDisplay) E.summaryContentDisplay.value = text; };
+        ui.updateSummaryContentDisplay = text => { 
+            if (E.summaryContentDisplay) {
+                E.summaryContentDisplay.value = text;
+                // 标记这是系统自动更新，不是用户手动修改
+                E.summaryContentDisplay.dataset.systemUpdate = 'true';
+            }
+        };
         
         ui.clearPlayerInput = () => { E.playerInput.value = ''; ui.autoResizeTextarea(E.playerInput); };
         
@@ -845,6 +851,8 @@ document.addEventListener('DOMContentLoaded', () => {
             E.postfixTextareaModal.value = S.currentPostfix;
             E.summaryPromptTextarea.value = S.currentSummaryPromptText; 
             E.summaryContentDisplay.value = S.accumulatedSummaryContent;
+            // 打开设置时重置用户修改标记，因为加载的是已保存的值
+            E.summaryContentDisplay.dataset.userModified = 'false';
         };
         // 新增：打开提示词独立设置面板
         E.promptSettingsToggleBtn.onclick = () => {
@@ -853,17 +861,104 @@ document.addEventListener('DOMContentLoaded', () => {
             E.prefixTextareaModal.value = S.currentPrefix;
             E.postfixTextareaModal.value = S.currentPostfix;
         };
-        E.closeSettingsModalBtn.onclick = () => E.settingsModal.style.display = 'none';
-        E.closePromptSettingsModalBtn.onclick = () => E.promptSettingsModal.style.display = 'none';
+        E.closeSettingsModalBtn.onclick = () => {
+            // 检查当前激活的标签页
+            const activeTab = document.querySelector('.settings-tab-content.active');
+            const tabId = activeTab ? activeTab.id : null;
+            
+            // 如果是总结设置标签页，检查所有总结相关设置
+            if (tabId === 'tab-summary') {
+                // 检查总结内容是否是用户手动修改的
+                const hasUserModifiedSummary = E.summaryContentDisplay.dataset.userModified === 'true';
+                
+                // 检查总结API设置是否有未保存的更改
+                const hasUnsavedSummaryChanges = 
+                    E.summaryApiKeyInput.value !== localStorage.getItem('summaryApiKey') ||
+                    E.summaryApiBaseUrlInput.value !== localStorage.getItem('summaryApiBaseUrl') ||
+                    E.summaryApiModelInput.value !== localStorage.getItem('summaryApiModel') ||
+                    E.summaryPromptTextarea.value !== localStorage.getItem('summaryPromptText');
+                
+                if (hasUserModifiedSummary || hasUnsavedSummaryChanges) {
+                    if (confirm('总结设置有未保存的更改，确定要关闭吗？\n\n点击"取消"返回保存，点击"确定"放弃更改并关闭。')) {
+                        // 重置为保存的值
+                        if (hasUserModifiedSummary) {
+                            E.summaryContentDisplay.value = S.accumulatedSummaryContent;
+                            E.summaryContentDisplay.dataset.userModified = 'false';
+                        }
+                        if (hasUnsavedSummaryChanges) {
+                            E.summaryApiKeyInput.value = localStorage.getItem('summaryApiKey') || '';
+                            E.summaryApiBaseUrlInput.value = localStorage.getItem('summaryApiBaseUrl') || '';
+                            E.summaryApiModelInput.value = localStorage.getItem('summaryApiModel') || '';
+                            E.summaryPromptTextarea.value = localStorage.getItem('summaryPromptText') || '';
+                        }
+                        E.settingsModal.style.display = 'none';
+                    }
+                } else {
+                    E.settingsModal.style.display = 'none';
+                }
+                return;
+            }
+            
+            // 检查API设置是否有未保存的更改（其他标签页）
+            const hasUnsavedChanges = 
+                E.apiKeyInput.value !== L.getCurrentApiKey() ||
+                E.apiBaseUrlInput.value !== localStorage.getItem('apiBaseUrl') ||
+                E.apiModelInput.value !== localStorage.getItem('apiModel') ||
+                E.memoryCountInput.value !== localStorage.getItem('memoryCount') ||
+                E.streamToggle.checked !== (localStorage.getItem('streamMode') === 'true') ||
+                E.temperatureSlider.value !== localStorage.getItem('temperature') ||
+                E.topPSlider.value !== localStorage.getItem('topP') ||
+                E.topKSlider.value !== localStorage.getItem('topK');
+            
+            if (hasUnsavedChanges) {
+                if (confirm('API设置有未保存的更改，确定要关闭吗？\n\n点击"取消"返回保存，点击"确定"放弃更改并关闭。')) {
+                    // 重置为原始值
+                    E.apiKeyInput.value = L.getCurrentApiKey();
+                    E.apiBaseUrlInput.value = localStorage.getItem('apiBaseUrl') || '';
+                    E.apiModelInput.value = localStorage.getItem('apiModel') || '';
+                    E.memoryCountInput.value = localStorage.getItem('memoryCount') || '10';
+                    E.streamToggle.checked = localStorage.getItem('streamMode') === 'true';
+                    E.temperatureSlider.value = localStorage.getItem('temperature') || '0.7';
+                    E.topPSlider.value = localStorage.getItem('topP') || '0.9';
+                    E.topKSlider.value = localStorage.getItem('topK') || '0';
+                    
+                    // 更新显示值
+                    E.temperatureValue.textContent = E.temperatureSlider.value;
+                    E.topPValue.textContent = E.topPSlider.value;
+                    E.topKValue.textContent = E.topKSlider.value;
+                    
+                    E.settingsModal.style.display = 'none';
+                }
+            } else {
+                E.settingsModal.style.display = 'none';
+            }
+        };
+        E.closePromptSettingsModalBtn.onclick = () => {
+            // 检查是否有未保存的更改
+            const hasUnsavedChanges = 
+                E.systemPromptTextareaModal.value !== S.currentSystemPrompt ||
+                E.prefixTextareaModal.value !== S.currentPrefix ||
+                E.postfixTextareaModal.value !== S.currentPostfix;
+            
+            if (hasUnsavedChanges) {
+                if (confirm('提示词设置有未保存的更改，确定要关闭吗？\n\n点击"取消"返回保存，点击"确定"放弃更改并关闭。')) {
+                    E.promptSettingsModal.style.display = 'none';
+                }
+            } else {
+                E.promptSettingsModal.style.display = 'none';
+            }
+        };
         E.editAvatarsBtn.onclick = () => { ui.updateAvatarPreviewsInModal(); E.avatarEditModal.style.display = 'block'; };
         E.closeAvatarEditModalBtn.onclick = () => E.avatarEditModal.style.display = 'none';
-        window.onclick = (event) => { 
-            if(event.target === E.settingsModal) E.settingsModal.style.display = 'none'; 
-            if(event.target === E.promptSettingsModal) E.promptSettingsModal.style.display = 'none'; 
-            if(event.target === E.avatarEditModal) E.avatarEditModal.style.display = 'none';
-            if(event.target === E.comboManageModal) E.comboManageModal.style.display = 'none'; 
-            if(event.target === E.apiKeyProfileManageModal) E.apiKeyProfileManageModal.style.display = 'none';
-        };
+        // 移除模态窗口外部点击关闭功能，防止误操作
+        // 用户必须点击明确的关闭按钮才能关闭窗口
+        // window.onclick = (event) => { 
+        //     if(event.target === E.settingsModal) E.settingsModal.style.display = 'none'; 
+        //     if(event.target === E.promptSettingsModal) E.promptSettingsModal.style.display = 'none'; 
+        //     if(event.target === E.avatarEditModal) E.avatarEditModal.style.display = 'none';
+        //     if(event.target === E.comboManageModal) E.comboManageModal.style.display = 'none'; 
+        //     if(event.target === E.apiKeyProfileManageModal) E.apiKeyProfileManageModal.style.display = 'none';
+        // };
 
         E.tabButtons.forEach(button => {
             button.onclick = () => {
@@ -926,9 +1021,23 @@ document.addEventListener('DOMContentLoaded', () => {
             S.accumulatedSummaryContent = E.summaryContentDisplay.value;
             localStorage.setItem('accumulatedSummaryContent', S.accumulatedSummaryContent);
             
+            // 保存后清除用户修改标记
+            E.summaryContentDisplay.dataset.userModified = 'false';
+            
             ui.showSystemMessage({ text: '总结设置与内容已保存！', type: 'system-message success' });
             E.summarySettingsStatus.textContent = '';
         };
+        
+        // 监听总结内容的手动修改
+        E.summaryContentDisplay.addEventListener('input', () => {
+            // 如果这是系统更新触发的，不清除标记
+            if (E.summaryContentDisplay.dataset.systemUpdate === 'true') {
+                E.summaryContentDisplay.dataset.systemUpdate = 'false';
+                return;
+            }
+            // 标记为用户手动修改
+            E.summaryContentDisplay.dataset.userModified = 'true';
+        });
         
         // 组合管理相关事件绑定
         if (E.promptComboSelect) {
@@ -1090,9 +1199,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
         if (E.apiKeyInput) {
-            E.apiKeyInput.oninput = () => {
-                L.setCurrentProfileApiKey(E.apiKeyInput.value);
-            };
+            // 移除实时保存，改为只在点击保存按钮时保存
+            E.apiKeyInput.oninput = null;
         }
     };
 
@@ -1134,6 +1242,10 @@ document.addEventListener('DOMContentLoaded', () => {
         E.summaryApiModelInput.value = S.summarySettings.model;
         E.summaryPromptTextarea.value = S.currentSummaryPromptText;
         E.summaryContentDisplay.value = S.accumulatedSummaryContent;
+        
+        // 初始化标记：设置系统更新标记，清除用户修改标记
+        E.summaryContentDisplay.dataset.systemUpdate = 'true';
+        E.summaryContentDisplay.dataset.userModified = 'false';
         
         E.gameOutputDiv.innerHTML = '';
         if (S.conversationHistory.length > 0) {
