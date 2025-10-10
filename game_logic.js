@@ -592,13 +592,18 @@ const GameApp = {
                 const finalText = stream ? accumulatedAiText : finalResponseText;
                 const statusBarContent = this.extractStatusBarContent(finalText);
                 const mainContent = this.removeStatusBarFromMainContent(finalText);
+                
+                // 检测媒体内容
+                const mediaContent = this.detectMediaContent(mainContent);
+                
                 const aiMessage = {
                     id: aiMessageId,
                     role: 'assistant',
                     content: finalText,
                     statusBarContent: statusBarContent,
                     model: modelName,
-                    floor: parseInt(tempAiBubble.dataset.floorId, 10)
+                    floor: parseInt(tempAiBubble.dataset.floorId, 10),
+                    mediaContent: mediaContent // 添加媒体内容字段
                 };
                 GameApp.state.conversationHistory.push(aiMessage);
                 this.saveHistoryToLocalStorage();
@@ -861,6 +866,86 @@ const GameApp = {
                         GameApp.ui.showSystemMessage({ text: `复制失败，请检查浏览器权限。`, type: 'system-message error' });
                     });
             }
+        },
+
+        detectMediaContent(content) {
+            if (!content) return null;
+            
+            const mediaContent = {
+                images: [],
+                videos: []
+            };
+            
+            // URL验证函数
+            const isValidUrl = (url) => {
+                try {
+                    const urlObj = new URL(url);
+                    // 只允许HTTP和HTTPS协议
+                    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+                        return false;
+                    }
+                    // 检查是否为私有IP或本地地址
+                    const hostname = urlObj.hostname;
+                    if (hostname === 'localhost' || hostname === '127.0.0.1' || 
+                        hostname.startsWith('192.168.') || hostname.startsWith('10.') ||
+                        hostname.startsWith('172.') || hostname === '::1') {
+                        return false;
+                    }
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            };
+            
+            // 安全URL处理函数
+            const sanitizeUrl = (url) => {
+                // 移除潜在的恶意字符
+                return url.replace(/[<>\"']/g, '');
+            };
+            
+            // 检测图片URL
+            const imagePatterns = [
+                /\[img\]\s*(https?:\/\/[^\s\[\]]+?)\s*\[\/img\]/gi,
+                /!\[image\]\s*\(\s*(https?:\/\/[^\s\)]+?)\s*\)/gi,
+                /https?:\/\/[^\s\"'<>]+?\.(jpg|jpeg|png|gif|webp|svg)/gi
+            ];
+            
+            imagePatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(content)) !== null) {
+                    let url = match[1] || match[0];
+                    url = sanitizeUrl(url);
+                    
+                    if (url && !mediaContent.images.includes(url) && isValidUrl(url)) {
+                        mediaContent.images.push(url);
+                    }
+                }
+            });
+            
+            // 检测视频URL
+            const videoPatterns = [
+                /\[video\]\s*(https?:\/\/[^\s\[\]]+?)\s*\[\/video\]/gi,
+                /https?:\/\/[^\s\"'<>]+?\.(mp4|webm|ogg|mov|avi)/gi
+            ];
+            
+            videoPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(content)) !== null) {
+                    let url = match[1] || match[0];
+                    url = sanitizeUrl(url);
+                    
+                    if (url && !mediaContent.videos.includes(url) && isValidUrl(url)) {
+                        mediaContent.videos.push(url);
+                    }
+                }
+            });
+            
+            // 如果没有检测到媒体内容，返回null
+            if (mediaContent.images.length === 0 && mediaContent.videos.length === 0) {
+                return null;
+            }
+            
+            return mediaContent;
         }
     }
 };

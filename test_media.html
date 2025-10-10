@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>媒体内容测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-message {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 10px 0;
+            background-color: #f9f9f9;
+        }
+        .message-media-container {
+            margin-top: 10px;
+        }
+        .message-image {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin: 5px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .message-image:hover {
+            transform: scale(1.05);
+        }
+        .message-video {
+            max-width: 300px;
+            max-height: 200px;
+            border-radius: 8px;
+            margin: 5px;
+            controls: true;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <h1>媒体内容显示测试</h1>
+    
+    <div class="test-container">
+        <h2>测试图片显示</h2>
+        <div id="image-tests"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>测试视频显示</h2>
+        <div id="video-tests"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>测试URL验证</h2>
+        <div id="url-validation-tests"></div>
+    </div>
+
+    <script>
+        // 复制game_logic.js中的detectMediaContent函数
+        function detectMediaContent(content) {
+            if (!content) return null;
+            
+            const mediaContent = {
+                images: [],
+                videos: []
+            };
+            
+            // URL验证函数
+            const isValidUrl = (url) => {
+                try {
+                    const urlObj = new URL(url);
+                    // 只允许HTTP和HTTPS协议
+                    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') {
+                        return false;
+                    }
+                    // 检查是否为私有IP或本地地址
+                    const hostname = urlObj.hostname;
+                    if (hostname === 'localhost' || hostname === '127.0.0.1' || 
+                        hostname.startsWith('192.168.') || hostname.startsWith('10.') ||
+                        hostname.startsWith('172.') || hostname === '::1') {
+                        return false;
+                    }
+                    return true;
+                } catch (e) {
+                    return false;
+                }
+            };
+            
+            // 安全URL处理函数
+            const sanitizeUrl = (url) => {
+                // 移除潜在的恶意字符
+                return url.replace(/[<>\"']/g, '');
+            };
+            
+            // 检测图片URL
+            const imagePatterns = [
+                /\[img\]\s*(https?:\/\/[^\s\[\]]+?)\s*\[\/img\]/gi,
+                /!\[image\]\s*\(\s*(https?:\/\/[^\s\)]+?)\s*\)/gi,
+                /https?:\/\/[^\s\"'<>]+?\.(jpg|jpeg|png|gif|webp|svg)/gi
+            ];
+            
+            imagePatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(content)) !== null) {
+                    let url = match[1] || match[0];
+                    url = sanitizeUrl(url);
+                    
+                    if (url && !mediaContent.images.includes(url) && isValidUrl(url)) {
+                        mediaContent.images.push(url);
+                    }
+                }
+            });
+            
+            // 检测视频URL
+            const videoPatterns = [
+                /\[video\]\s*(https?:\/\/[^\s\[\]]+?)\s*\[\/video\]/gi,
+                /https?:\/\/[^\s\"'<>]+?\.(mp4|webm|ogg|mov|avi)/gi
+            ];
+            
+            videoPatterns.forEach(pattern => {
+                let match;
+                while ((match = pattern.exec(content)) !== null) {
+                    let url = match[1] || match[0];
+                    url = sanitizeUrl(url);
+                    
+                    if (url && !mediaContent.videos.includes(url) && isValidUrl(url)) {
+                        mediaContent.videos.push(url);
+                    }
+                }
+            });
+            
+            // 如果没有检测到媒体内容，返回null
+            if (mediaContent.images.length === 0 && mediaContent.videos.length === 0) {
+                return null;
+            }
+            
+            return mediaContent;
+        }
+
+        // 创建媒体内容HTML
+        function createMediaHTML(mediaContent) {
+            let html = '';
+            
+            if (mediaContent && mediaContent.images && mediaContent.images.length > 0) {
+                html += '<div class="message-media-container">';
+                mediaContent.images.forEach(url => {
+                    html += `<img src="${url}" class="message-image" alt="图片" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            <div style="display:none;color:red;">图片加载失败: ${url}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            if (mediaContent && mediaContent.videos && mediaContent.videos.length > 0) {
+                html += '<div class="message-media-container">';
+                mediaContent.videos.forEach(url => {
+                    html += `<video src="${url}" class="message-video" controls onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                            您的浏览器不支持视频播放
+                            </video>
+                            <div style="display:none;color:red;">视频加载失败: ${url}</div>`;
+                });
+                html += '</div>';
+            }
+            
+            return html;
+        }
+
+        // 运行测试
+        function runTests() {
+            // 图片测试
+            const imageTests = [
+                "这是一个测试消息，包含图片: [img]https://picsum.photos/150/150.jpg[/img]",
+                "使用Markdown格式: ![image](https://picsum.photos/200/150.jpg)",
+                "直接URL: https://picsum.photos/300/200.jpg",
+                "混合内容: 文字 [img]https://picsum.photos/100/100.jpg[/img] 更多文字"
+            ];
+            
+            const imageContainer = document.getElementById('image-tests');
+            imageTests.forEach((test, index) => {
+                const result = detectMediaContent(test);
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-message';
+                testDiv.innerHTML = `
+                    <strong>测试 ${index + 1}:</strong> ${test}
+                    <div class="test-result ${result && result.images.length > 0 ? 'success' : 'error'}">
+                        ${result && result.images.length > 0 ? 
+                            `检测到 ${result.images.length} 张图片: ${result.images.join(', ')}` : 
+                            '未检测到图片'}
+                    </div>
+                    ${result && result.images.length > 0 ? createMediaHTML(result) : ''}
+                `;
+                imageContainer.appendChild(testDiv);
+            });
+
+            // 视频测试
+            const videoTests = [
+                "视频测试: [video]https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4[/video]",
+                "直接视频URL: https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4",
+                "WebM格式: https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.webm"
+            ];
+            
+            const videoContainer = document.getElementById('video-tests');
+            videoTests.forEach((test, index) => {
+                const result = detectMediaContent(test);
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-message';
+                testDiv.innerHTML = `
+                    <strong>测试 ${index + 1}:</strong> ${test}
+                    <div class="test-result ${result && result.videos.length > 0 ? 'success' : 'error'}">
+                        ${result && result.videos.length > 0 ? 
+                            `检测到 ${result.videos.length} 个视频: ${result.videos.join(', ')}` : 
+                            '未检测到视频'}
+                    </div>
+                    ${result && result.videos.length > 0 ? createMediaHTML(result) : ''}
+                `;
+                videoContainer.appendChild(testDiv);
+            });
+
+            // URL验证测试
+            const urlTests = [
+                { url: "https://example.com/image.jpg", expected: true, desc: "正常HTTPS URL" },
+                { url: "http://localhost/image.jpg", expected: false, desc: "本地主机" },
+                { url: "ftp://example.com/image.jpg", expected: false, desc: "非HTTP协议" },
+                { url: "https://192.168.1.1/image.jpg", expected: false, desc: "私有IP" },
+                { url: "https://10.0.0.1/image.jpg", expected: false, desc: "私有网络" },
+                { url: "javascript:alert('xss')", expected: false, desc: "恶意脚本" }
+            ];
+            
+            const urlContainer = document.getElementById('url-validation-tests');
+            urlTests.forEach((test, index) => {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'test-message';
+                
+                // 模拟URL验证
+                let isValid = true;
+                try {
+                    const urlObj = new URL(test.url);
+                    if (urlObj.protocol !== 'http:' && urlObj.protocol !== 'https:') isValid = false;
+                    const hostname = urlObj.hostname;
+                    if (hostname === 'localhost' || hostname === '127.0.0.1' || 
+                        hostname.startsWith('192.168.') || hostname.startsWith('10.') ||
+                        hostname.startsWith('172.')) isValid = false;
+                } catch (e) {
+                    isValid = false;
+                }
+                
+                const passed = isValid === test.expected;
+                testDiv.innerHTML = `
+                    <strong>测试 ${index + 1}:</strong> ${test.desc}<br>
+                    URL: ${test.url}<br>
+                    期望: ${test.expected ? '有效' : '无效'} | 实际: ${isValid ? '有效' : '无效'}
+                    <div class="test-result ${passed ? 'success' : 'error'}">
+                        ${passed ? '✓ 通过' : '✗ 失败'}
+                    </div>
+                `;
+                urlContainer.appendChild(testDiv);
+            });
+        }
+
+        // 页面加载完成后运行测试
+        document.addEventListener('DOMContentLoaded', runTests);
+    </script>
+</body>
+</html>

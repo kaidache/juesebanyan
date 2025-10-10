@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ui.addMessageToGameOutputDOM = (messageData) => {
             const messageContent = messageData.content || messageData.text || '';
-            const { type, id, floor, modelName, isSummaryNotification = false, role } = messageData;
+            const { type, id, floor, modelName, isSummaryNotification = false, role, mediaContent } = messageData;
             
             const messageType = type || getRoleClass(role);
 
@@ -216,6 +216,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isFinalAiMessage = messageType.includes('ai-message') && !messageType.includes('is-thinking') && !messageType.includes('ai-error-message');
                 messageTextSpan.innerHTML = isFinalAiMessage ? formatMessageText(L.removeStatusBarFromMainContent(messageContent)) : messageContent;
                 contentWrapper.appendChild(messageTextSpan);
+
+                // 添加媒体内容显示
+                if (mediaContent && (mediaContent.images.length > 0 || mediaContent.videos.length > 0)) {
+                    const mediaContainer = document.createElement('div');
+                    mediaContainer.className = 'message-media-container';
+                    
+                    // 添加图片
+                    if (mediaContent.images && mediaContent.images.length > 0) {
+                        mediaContent.images.forEach(imageUrl => {
+                            const imgElement = document.createElement('img');
+                            imgElement.src = imageUrl;
+                            imgElement.className = 'message-image';
+                            imgElement.alt = 'AI生成的图片';
+                            imgElement.loading = 'lazy';
+                            mediaContainer.appendChild(imgElement);
+                        });
+                    }
+                    
+                    // 添加视频
+                    if (mediaContent.videos && mediaContent.videos.length > 0) {
+                        mediaContent.videos.forEach(videoUrl => {
+                            const videoElement = document.createElement('video');
+                            videoElement.src = videoUrl;
+                            videoElement.className = 'message-video';
+                            videoElement.controls = true;
+                            videoElement.preload = 'metadata';
+                            mediaContainer.appendChild(videoElement);
+                        });
+                    }
+                    
+                    contentWrapper.appendChild(mediaContainer);
+                }
 
                 if (modelName && isFinalAiMessage) {
                     const modelSpan = document.createElement('span');

@@ -82,6 +82,25 @@ const openAIAdapter = {
                                         fullResponse += content;
                                         if (onChunk) onChunk(content);
                                     }
+                                    
+                                    // 检测多模态内容（图片/视频）
+                                    const hasImageContent = data.choices?.[0]?.delta?.content?.includes('[img]') || 
+                                                           data.choices?.[0]?.delta?.content?.includes('![image]') ||
+                                                           data.choices?.[0]?.delta?.content?.includes('http') && 
+                                                           /\.(jpg|jpeg|png|gif|webp|svg)/i.test(data.choices?.[0]?.delta?.content);
+                                    
+                                    const hasVideoContent = data.choices?.[0]?.delta?.content?.includes('[video]') ||
+                                                           data.choices?.[0]?.delta?.content?.includes('http') &&
+                                                           /\.(mp4|webm|ogg|mov|avi)/i.test(data.choices?.[0]?.delta?.content);
+                                    
+                                    if (hasImageContent || hasVideoContent) {
+                                        const mediaContent = {
+                                            type: hasImageContent ? 'image' : 'video',
+                                            content: content,
+                                            rawData: data.choices?.[0]?.delta
+                                        };
+                                        if (onChunk) onChunk(content, mediaContent);
+                                    }
                                 } catch (e) {
                                     console.error("Error parsing OpenAI stream data:", e, "Data string:", dataStr);
                                 }
@@ -93,7 +112,29 @@ const openAIAdapter = {
                 } else {
                     const data = await response.json();
                     const fullResponse = data.choices?.[0]?.message?.content || "";
-                    if (onComplete) onComplete(fullResponse);
+                    
+                    // 检测多模态内容（图片/视频）
+                    const messageContent = data.choices?.[0]?.message?.content || "";
+                    const hasImageContent = messageContent.includes('[img]') || 
+                                           messageContent.includes('![image]') ||
+                                           (messageContent.includes('http') && 
+                                           /\.(jpg|jpeg|png|gif|webp|svg)/i.test(messageContent));
+                    
+                    const hasVideoContent = messageContent.includes('[video]') ||
+                                           (messageContent.includes('http') &&
+                                           /\.(mp4|webm|ogg|mov|avi)/i.test(messageContent));
+                    
+                    if (hasImageContent || hasVideoContent) {
+                        const mediaContent = {
+                            type: hasImageContent ? 'image' : 'video',
+                            content: fullResponse,
+                            hasMedia: true
+                        };
+                        if (onComplete) onComplete(fullResponse, mediaContent);
+                    } else {
+                        if (onComplete) onComplete(fullResponse);
+                    }
+                    
                     return fullResponse;
                 }
 
@@ -206,6 +247,25 @@ const customOpenAIAdapter = {
                                         fullResponse += content;
                                         if (onChunk) onChunk(content);
                                     }
+                                    
+                                    // 检测多模态内容（图片/视频）
+                                    const hasImageContent = data.choices?.[0]?.delta?.content?.includes('[img]') || 
+                                                           data.choices?.[0]?.delta?.content?.includes('![image]') ||
+                                                           data.choices?.[0]?.delta?.content?.includes('http') && 
+                                                           /\.(jpg|jpeg|png|gif|webp|svg)/i.test(data.choices?.[0]?.delta?.content);
+                                    
+                                    const hasVideoContent = data.choices?.[0]?.delta?.content?.includes('[video]') ||
+                                                           data.choices?.[0]?.delta?.content?.includes('http') &&
+                                                           /\.(mp4|webm|ogg|mov|avi)/i.test(data.choices?.[0]?.delta?.content);
+                                    
+                                    if (hasImageContent || hasVideoContent) {
+                                        const mediaContent = {
+                                            type: hasImageContent ? 'image' : 'video',
+                                            content: content,
+                                            rawData: data.choices?.[0]?.delta
+                                        };
+                                        if (onChunk) onChunk(content, mediaContent);
+                                    }
                                 } catch (e) {
                                     console.error("Error parsing OpenAI stream data:", e, "Data string:", dataStr);
                                 }
@@ -217,7 +277,29 @@ const customOpenAIAdapter = {
                 } else {
                     const data = await response.json();
                     const fullResponse = data.choices?.[0]?.message?.content || "";
-                    if (onComplete) onComplete(fullResponse);
+                    
+                    // 检测多模态内容（图片/视频）
+                    const messageContent = data.choices?.[0]?.message?.content || "";
+                    const hasImageContent = messageContent.includes('[img]') || 
+                                           messageContent.includes('![image]') ||
+                                           (messageContent.includes('http') && 
+                                           /\.(jpg|jpeg|png|gif|webp|svg)/i.test(messageContent));
+                    
+                    const hasVideoContent = messageContent.includes('[video]') ||
+                                           (messageContent.includes('http') &&
+                                           /\.(mp4|webm|ogg|mov|avi)/i.test(messageContent));
+                    
+                    if (hasImageContent || hasVideoContent) {
+                        const mediaContent = {
+                            type: hasImageContent ? 'image' : 'video',
+                            content: fullResponse,
+                            hasMedia: true
+                        };
+                        if (onComplete) onComplete(fullResponse, mediaContent);
+                    } else {
+                        if (onComplete) onComplete(fullResponse);
+                    }
+                    
                     return fullResponse;
                 }
 

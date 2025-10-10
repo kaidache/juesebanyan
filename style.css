@@ -774,7 +774,90 @@ body {
     border-left-color: var(--error-color);
     background-color: rgba(230, 57, 70, 0.05);
 }
+
 .message-bubble.system-message.summary-notification.warning {
+    color: var(--warning-color);
+}
+
+/* 媒体内容样式 */
+.message-media-container {
+    margin-top: var(--spacing-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.message-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: var(--transition-normal);
+    object-fit: contain;
+}
+
+.message-image:hover {
+    transform: scale(1.02);
+    box-shadow: var(--shadow-lg);
+}
+
+.message-video {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius-lg);
+    box-shadow: var(--shadow-md);
+    border: 1px solid var(--border-color);
+    background: var(--panel-bg);
+}
+
+.message-video:focus {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* 响应式媒体布局 */
+@media (min-width: 768px) {
+    .message-media-container {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: var(--spacing-lg);
+    }
+    
+    .message-image,
+    .message-video {
+        max-width: calc(50% - var(--spacing-lg) / 2);
+        min-width: 200px;
+    }
+    
+    .message-media-container > *:only-child {
+        max-width: 100%;
+    }
+}
+
+@media (min-width: 1024px) {
+    .message-image,
+    .message-video {
+        max-width: calc(33.333% - var(--spacing-lg) * 2 / 3);
+    }
+}
+
+/* 媒体加载状态 */
+.message-image[loading="lazy"] {
+    background: linear-gradient(90deg, var(--panel-bg) 25%, var(--panel-bg-light) 50%, var(--panel-bg) 75%);
+    background-size: 200% 100%;
+    animation: loadingShimmer 1.5s infinite;
+}
+
+@keyframes loadingShimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
     color: var(--warning-color);
     border-left-color: var(--warning-color);
     background-color: rgba(240, 173, 78, 0.05);
