@@ -94,6 +94,23 @@ document.addEventListener('DOMContentLoaded', () => {
         E.renameApiKeyProfileBtn = document.getElementById('renameApiKeyProfileBtn');
         E.deleteApiKeyProfileBtn = document.getElementById('deleteApiKeyProfileBtn');
         
+        // 导入/导出相关元素
+        E.openImportExportBtn = document.getElementById('openImportExportBtn');
+        E.importExportModal = document.getElementById('importExportModal');
+        E.closeImportExportModalBtn = document.getElementById('closeImportExportModalBtn');
+        E.importFormatSelect = document.getElementById('importFormatSelect');
+        E.importFileInput = document.getElementById('importFileInput');
+        E.startImportBtn = document.getElementById('startImportBtn');
+        E.importProgressBar = document.getElementById('importProgressBar');
+        E.importProgressText = document.getElementById('importProgressText');
+        E.importLogArea = document.getElementById('importLogArea');
+        E.exportFormatSelect = document.getElementById('exportFormatSelect');
+        E.exportScopeSelect = document.getElementById('exportScopeSelect');
+        E.startExportBtn = document.getElementById('startExportBtn');
+        E.exportProgressBar = document.getElementById('exportProgressBar');
+        E.exportProgressText = document.getElementById('exportProgressText');
+        E.exportLogArea = document.getElementById('exportLogArea');
+        
 
         
 
@@ -827,6 +844,328 @@ document.addEventListener('DOMContentLoaded', () => {
             E.playerAvatarUrlInput.value = S.currentPlayerAvatar.startsWith('data:image') ? '' : S.currentPlayerAvatar;
             E.aiAvatarUrlInput.value = S.currentAiAvatar.startsWith('data:image') ? '' : S.currentAiAvatar;
         };
+
+        // ===== 导入/导出：UI工具与解析/导出实现 =====
+        ui.openImportExportModal = () => { if (E.importExportModal) E.importExportModal.style.display = 'block'; };
+        ui.closeImportExportModal = () => { if (E.importExportModal) E.importExportModal.style.display = 'none'; };
+
+        ui.setImportProgress = (percent, text = '') => {
+            if (E.importProgressBar) E.importProgressBar.value = Math.max(0, Math.min(100, percent || 0));
+            if (E.importProgressText) E.importProgressText.textContent = text || `${Math.round(percent || 0)}%`;
+        };
+        ui.logImport = (msg) => {
+            if (!E.importLogArea) return;
+            E.importLogArea.textContent = (E.importLogArea.textContent ? (E.importLogArea.textContent + "\n") : '') + String(msg || '');
+            E.importLogArea.scrollTop = E.importLogArea.scrollHeight;
+        };
+
+        ui.setExportProgress = (percent, text = '') => {
+            if (E.exportProgressBar) E.exportProgressBar.value = Math.max(0, Math.min(100, percent || 0));
+            if (E.exportProgressText) E.exportProgressText.textContent = text || `${Math.round(percent || 0)}%`;
+        };
+        ui.logExport = (msg) => {
+            if (!E.exportLogArea) return;
+            E.exportLogArea.textContent = (E.exportLogArea.textContent ? (E.exportLogArea.textContent + "\n") : '') + String(msg || '');
+            E.exportLogArea.scrollTop = E.exportLogArea.scrollHeight;
+        };
+
+        ui.detectFormatFromFilename = (name) => {
+            const lower = (name || '').toLowerCase();
+            if (lower.endsWith('.json')) return 'json';
+            if (lower.endsWith('.csv')) return 'csv';
+            if (lower.endsWith('.xlsx') || lower.endsWith('.xls')) return 'excel';
+            return 'unknown';
+        };
+
+        ui.readFile = (file, wantBinary = false) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onerror = (e) => reject(e);
+            reader.onload = () => resolve(reader.result);
+            if (wantBinary) reader.readAsArrayBuffer(file); else reader.readAsText(file, 'utf-8');
+        });
+
+        ui.parseCSVToMessages = (csvText) => {
+            // 简易CSV解析（支持双引号包裹字段）
+            const rows = [];
+            let cur = '';
+            let inQuotes = false;
+            const pushCell = (cells, cell) => { cells.push(cell); };
+            const pushRow = (cells) => { rows.push(cells); };
+            let cells = [];
+            for (let i = 0; i < csvText.length; i++) {
+                const ch = csvText[i];
+                if (inQuotes) {
+                    if (ch === '"') {
+                        const next = csvText[i + 1];
+                        if (next === '"') { cur += '"'; i++; }
+                        else inQuotes = false;
+                    } else {
+                        cur += ch;
+                    }
+                } else {
+                    if (ch === '"') inQuotes = true;
+                    else if (ch === ',') { pushCell(cells, cur); cur = ''; }
+                    else if (ch === '\n' || ch === '\r') {
+                        if (ch === '\r' && csvText[i + 1] === '\n') { i++; }
+                        pushCell(cells, cur); cur = ''; pushRow(cells); cells = [];
+                    } else cur += ch;
+                }
+            }
+            if (cur.length > 0 || cells.length > 0) { pushCell(cells, cur); pushRow(cells); }
+            if (rows.length === 0) return [];
+            const header = rows[0].map(h => h.trim().toLowerCase());
+            const idx = {
+                id: header.indexOf('id'),
+                floor: header.indexOf('floor'),
+                role: header.indexOf('role'),
+                content: header.indexOf('content'),
+                status: header.indexOf('statusbarcontent'),
+                model: header.indexOf('modelname')
+            };
+            const messages = [];
+            for (let r = 1; r < rows.length; r++) {
+                const row = rows[r]; if (!row || row.length === 0) continue;
+                const role = idx.role >= 0 ? row[idx.role] : (r % 2 === 1 ? 'user' : 'assistant');
+                const content = idx.content >= 0 ? row[idx.content] : row[0];
+                const idStr = idx.id >= 0 ? row[idx.id] : '';
+                const floorStr = idx.floor >= 0 ? row[idx.floor] : '';
+                const statusBarContent = idx.status >= 0 ? row[idx.status] : '';
+                const modelName = idx.model >= 0 ? row[idx.model] : '';
+                const id = idStr ? parseInt(idStr, 10) : undefined;
+                const floor = floorStr ? parseInt(floorStr, 10) : undefined;
+                if (!content) continue;
+                messages.push({ id, floor, role: role === 'assistant' ? 'assistant' : 'user', content, statusBarContent, modelName });
+            }
+            // 重新分配ID与楼层（如缺失）
+            let counter = 1;
+            messages.forEach(m => { if (m.id == null) m.id = counter++; });
+            let floorCounter = 1;
+            messages.forEach(m => { if (m.role === 'user' || m.role === 'assistant') { m.floor = floorCounter++; } });
+            return messages;
+        };
+
+        ui.parseExcelToMessages = async (arrayBuffer) => {
+            if (!window.XLSX) throw new Error('未加载Excel解析库');
+            const wb = XLSX.read(arrayBuffer, { type: 'array' });
+            const sheetName = wb.SheetNames[0];
+            const sheet = wb.Sheets[sheetName];
+            const json = XLSX.utils.sheet_to_json(sheet, { defval: '' });
+            // 期望列名：id,floor,role,content,statusBarContent,modelName（不区分大小写）
+            const normKey = k => String(k || '').trim().toLowerCase();
+            const messages = json.map((row, idx) => {
+                const keys = Object.keys(row).reduce((acc, k) => { acc[normKey(k)] = row[k]; return acc; }, {});
+                const role = keys['role'] || (idx % 2 === 0 ? 'user' : 'assistant');
+                const content = keys['content'] || '';
+                const idStr = keys['id'] || '';
+                const floorStr = keys['floor'] || '';
+                const statusBarContent = keys['statusbarcontent'] || '';
+                const modelName = keys['modelname'] || '';
+                const id = idStr ? parseInt(idStr, 10) : undefined;
+                const floor = floorStr ? parseInt(floorStr, 10) : undefined;
+                return { id, floor, role: role === 'assistant' ? 'assistant' : 'user', content, statusBarContent, modelName };
+            }).filter(m => m.content);
+            let counter = 1; messages.forEach(m => { if (m.id == null) m.id = counter++; });
+            let floorCounter = 1; messages.forEach(m => { if (m.role === 'user' || m.role === 'assistant') { m.floor = floorCounter++; } });
+            return messages;
+        };
+
+        ui.parseJSONImport = (text) => {
+            let data; try { data = JSON.parse(text); } catch (e) { throw new Error('JSON 格式不正确'); }
+            if (Array.isArray(data)) {
+                // 仅对话历史
+                return { kind: 'history', messages: data };
+            }
+            if (data && (data.promptCombos || data.apiKeyProfiles)) {
+                return { kind: 'full', payload: data };
+            }
+            throw new Error('不支持的 JSON 结构');
+        };
+
+        ui.clearAllConfigStorage = () => {
+            const keys = [
+                'promptCombos','currentComboId',
+                'apiKeyProfiles','currentApiKeyProfileId',
+                'summaryApiKey','summaryApiBaseUrl','summaryApiModel','summaryPromptText',
+                'apiProvider','apiBaseUrl','apiModel','memoryCount','streamMode','temperature','topP','topK',
+                'accumulatedSummaryContent','summarizedUntilTurnCount',
+                // 旧版键名
+                'savedConversationHistory','systemPrompt','prefix','postfix','playerAvatarUrl','aiAvatarUrl','apiKey'
+            ];
+            keys.forEach(k => { try { localStorage.removeItem(k); } catch (_) {} });
+        };
+
+        ui.applyImportedData = async (importData) => {
+            if (!importData) return;
+            if (importData.kind === 'full') {
+                // 先彻底清理旧配置
+                ui.clearAllConfigStorage();
+                const p = importData.payload || {};
+                // 校验与应用组合
+                if (p.promptCombos && typeof p.promptCombos === 'object') {
+                    S.promptCombos = p.promptCombos;
+                    const ids = Object.keys(S.promptCombos);
+                    S.currentComboId = (p.currentComboId && S.promptCombos[p.currentComboId]) ? p.currentComboId : (ids[0] || 'combo-1');
+                    L.saveAllCombosToStorage();
+                }
+                // 应用 API Key 档案
+                if (p.apiKeyProfiles && typeof p.apiKeyProfiles === 'object') {
+                    S.apiKeyProfiles = p.apiKeyProfiles;
+                    const keyIds = Object.keys(S.apiKeyProfiles || {});
+                    S.currentApiKeyProfileId = (p.currentApiKeyProfileId && S.apiKeyProfiles[p.currentApiKeyProfileId]) ? p.currentApiKeyProfileId : (keyIds[0] || 'key-1');
+                    L.saveAllApiKeyProfilesToStorage();
+                }
+                // 应用总结设置
+                if (p.summarySettings && typeof p.summarySettings === 'object') {
+                    S.summarySettings.apiKey = p.summarySettings.apiKey || '';
+                    S.summarySettings.baseUrl = p.summarySettings.baseUrl || '';
+                    S.summarySettings.model = p.summarySettings.model || '';
+                    localStorage.setItem('summaryApiKey', S.summarySettings.apiKey);
+                    localStorage.setItem('summaryApiBaseUrl', S.summarySettings.baseUrl);
+                    localStorage.setItem('summaryApiModel', S.summarySettings.model);
+                }
+                if (typeof p.currentSummaryPromptText === 'string') {
+                    S.currentSummaryPromptText = p.currentSummaryPromptText;
+                    localStorage.setItem('summaryPromptText', S.currentSummaryPromptText);
+                }
+                // 注意：主要 API 设置（apiProvider/baseUrl/model/memoryCount/streamMode/temperature/topP/topK）
+                // 当前导出不包含，如需随导入替换，可在JSON中加入这些键并在此写入。
+                // 由于已清理旧值，这些配置将回落为默认或空值，避免旧配置残留。
+
+                // 重新加载当前组合并刷新UI
+                L.loadComboData(S.currentComboId);
+                if (GameApp.ui.updateComboSelector) GameApp.ui.updateComboSelector();
+                if (GameApp.ui.updateComboList) GameApp.ui.updateComboList();
+                if (GameApp.ui.updateApiKeyProfileSelector) GameApp.ui.updateApiKeyProfileSelector();
+                if (GameApp.ui.updateApiKeyProfileList) GameApp.ui.updateApiKeyProfileList();
+                GameApp.ui.refreshUI();
+                GameApp.ui.showSystemMessage({ text: '完整配置导入完成（已清空旧配置）！', type: 'system-message success' });
+            } else if (importData.kind === 'history') {
+                // 导入到当前组合的对话历史
+                const msgs = importData.messages.map(m => ({
+                    id: m.id,
+                    floor: m.floor,
+                    role: m.role === 'assistant' ? 'assistant' : 'user',
+                    content: String(m.content || ''),
+                    statusBarContent: m.statusBarContent || '',
+                    modelName: m.modelName || ''
+                })).filter(m => m.content);
+                let counter = 1; msgs.forEach(m => { if (m.id == null) m.id = counter++; });
+                let floorCounter = 1; msgs.forEach(m => { if (m.role === 'user' || m.role === 'assistant') { m.floor = floorCounter++; } });
+                const currentCombo = S.promptCombos[S.currentComboId];
+                if (currentCombo) {
+                    currentCombo.conversationHistory = msgs;
+                    currentCombo.messageIdCounter = Math.max(0, ...msgs.map(x => x.id || 0)) + 1;
+                    currentCombo.currentFloorCounter = floorCounter;
+                    // 同步到活动状态
+                    L.saveAllCombosToStorage();
+                    L.loadComboData(S.currentComboId);
+                    GameApp.ui.refreshUI();
+                    GameApp.ui.showSystemMessage({ text: `对话历史导入完成（共 ${msgs.length} 条）。`, type: 'system-message success' });
+                }
+            }
+        };
+
+        ui.buildJSONExportData = () => {
+            const data = {
+                version: '1',
+                exportedAt: new Date().toISOString(),
+                promptCombos: S.promptCombos,
+                currentComboId: S.currentComboId,
+                apiKeyProfiles: S.apiKeyProfiles,
+                currentApiKeyProfileId: S.currentApiKeyProfileId,
+                summarySettings: S.summarySettings,
+                currentSummaryPromptText: S.currentSummaryPromptText,
+            };
+            return data;
+        };
+
+        ui.triggerDownload = (blob, filename) => {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            try {
+                if (typeof a.download === 'undefined') {
+                    // 某些移动端(如 iOS Safari)不支持 download 属性，打开新窗口交由系统处理
+                    window.open(url, '_blank');
+                    setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} }, 1500);
+                } else {
+                    a.click();
+                    setTimeout(() => { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (_) {} }, 0);
+                }
+            } catch (_) {
+                // 兜底：直接跳转
+                location.href = url;
+                setTimeout(() => { try { URL.revokeObjectURL(url); } catch (_) {} }, 1500);
+            }
+        };
+
+        ui.exportJSON = async () => {
+            ui.setExportProgress(10, '准备数据...');
+            const data = ui.buildJSONExportData();
+            ui.setExportProgress(60, '序列化...');
+            const text = JSON.stringify(data);
+            const blob = new Blob([text], { type: 'application/json' });
+            const ts = new Date().toISOString().replace(/[:.]/g, '-');
+            ui.setExportProgress(90, '生成文件...');
+            ui.triggerDownload(blob, `GameApp-export-${ts}.json`);
+            ui.setExportProgress(100, '完成');
+            ui.logExport('JSON 导出完成。');
+        };
+
+        ui.exportCSV = async (scope = 'current') => {
+            const combos = scope === 'all' ? Object.keys(S.promptCombos) : [S.currentComboId];
+            if (combos.length > 1) {
+                // 提示：CSV 仅导出当前组合，批量请使用 Excel
+                ui.logExport('提示：CSV仅导出当前组合。若需多组合请用Excel。');
+            }
+            const comboId = combos[0];
+            const combo = S.promptCombos[comboId];
+            const rows = [['id','floor','role','content','statusBarContent','modelName']];
+            combo.conversationHistory.forEach(m => {
+                rows.push([
+                    m.id ?? '',
+                    m.floor ?? '',
+                    m.role ?? '',
+                    (m.content || '').replace(/"/g, '""'),
+                    (m.statusBarContent || '').replace(/"/g, '""'),
+                    m.modelName || ''
+                ].map(x => `"${String(x)}"`));
+            });
+            const csv = rows.map(r => r.join(',')).join('\r\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const ts = new Date().toISOString().replace(/[:.]/g, '-');
+            ui.triggerDownload(blob, `conversation-${combo.name || comboId}-${ts}.csv`);
+            ui.setExportProgress(100, '完成');
+            ui.logExport('CSV 导出完成。');
+        };
+
+        ui.exportExcel = async (scope = 'current') => {
+            if (!window.XLSX) { ui.logExport('错误：未加载Excel解析库'); return; }
+            const wb = XLSX.utils.book_new();
+            const combos = scope === 'all' ? Object.keys(S.promptCombos) : [S.currentComboId];
+            combos.forEach((comboId, idx) => {
+                const combo = S.promptCombos[comboId];
+                const json = combo.conversationHistory.map(m => ({
+                    id: m.id ?? '',
+                    floor: m.floor ?? '',
+                    role: m.role ?? '',
+                    content: m.content || '',
+                    statusBarContent: m.statusBarContent || '',
+                    modelName: m.modelName || ''
+                }));
+                const ws = XLSX.utils.json_to_sheet(json);
+                XLSX.utils.book_append_sheet(wb, ws, (combo.name || comboId).slice(0, 31));
+                ui.setExportProgress(Math.round(((idx + 1) / combos.length) * 100));
+            });
+            const out = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
+            const blob = new Blob([out], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const ts = new Date().toISOString().replace(/[:.]/g, '-');
+            ui.triggerDownload(blob, `conversation-${scope}-${ts}.xlsx`);
+            ui.setExportProgress(100, '完成');
+            ui.logExport('Excel 导出完成。');
+        };
     };
 
     const bindEventListeners = () => {
@@ -1019,6 +1358,89 @@ document.addEventListener('DOMContentLoaded', () => {
             E.apiSettingsStatus.textContent = ''; 
         };
         E.getApiModelsBtn.onclick = () => ui.fetchModels(false);
+
+        // ===== 导入/导出：事件绑定 =====
+        if (E.openImportExportBtn) {
+            E.openImportExportBtn.onclick = () => {
+                ui.setImportProgress(0, ''); ui.setExportProgress(0, '');
+                if (E.importLogArea) E.importLogArea.textContent = '';
+                if (E.exportLogArea) E.exportLogArea.textContent = '';
+                ui.openImportExportModal();
+            };
+        }
+        if (E.closeImportExportModalBtn) {
+            E.closeImportExportModalBtn.onclick = () => ui.closeImportExportModal();
+        }
+
+        if (E.startImportBtn) {
+            E.startImportBtn.onclick = async () => {
+                try {
+                    ui.setImportProgress(5, '准备中...');
+                    if (!E.importFileInput || !E.importFileInput.files || !E.importFileInput.files[0]) {
+                        ui.logImport('请先选择要导入的文件。');
+                        ui.setImportProgress(0, '等待文件');
+                        return;
+                    }
+                    const file = E.importFileInput.files[0];
+                    let format = (E.importFormatSelect && E.importFormatSelect.value) || 'auto';
+                    if (format === 'auto') format = ui.detectFormatFromFilename(file.name);
+                    ui.logImport(`检测到格式：${format}`);
+
+                    if (format === 'json') {
+                        const text = await ui.readFile(file, false);
+                        ui.setImportProgress(40, '解析 JSON...');
+                        const parsed = ui.parseJSONImport(text);
+                        ui.setImportProgress(70, '应用数据...');
+                        await ui.applyImportedData(parsed);
+                        ui.setImportProgress(100, '完成');
+                        ui.logImport('JSON 导入成功。');
+                    } else if (format === 'csv') {
+                        const text = await ui.readFile(file, false);
+                        ui.setImportProgress(30, '解析 CSV...');
+                        const messages = ui.parseCSVToMessages(text);
+                        ui.setImportProgress(70, `应用消息（${messages.length}）...`);
+                        await ui.applyImportedData({ kind: 'history', messages });
+                        ui.setImportProgress(100, '完成');
+                        ui.logImport('CSV 导入成功。');
+                    } else if (format === 'excel') {
+                        const buf = await ui.readFile(file, true);
+                        ui.setImportProgress(30, '解析 Excel...');
+                        const messages = await ui.parseExcelToMessages(buf);
+                        ui.setImportProgress(70, `应用消息（${messages.length}）...`);
+                        await ui.applyImportedData({ kind: 'history', messages });
+                        ui.setImportProgress(100, '完成');
+                        ui.logImport('Excel 导入成功。');
+                    } else {
+                        ui.logImport('无法识别的文件格式，请选择 JSON/CSV/Excel。');
+                        ui.setImportProgress(0, '失败');
+                    }
+                } catch (err) {
+                    console.error('导入失败', err);
+                    ui.logImport(`导入失败：${err && err.message ? err.message : String(err)}`);
+                    ui.setImportProgress(0, '错误');
+                }
+            };
+        }
+
+        if (E.startExportBtn) {
+            E.startExportBtn.onclick = async () => {
+                try {
+                    ui.setExportProgress(5, '准备中...');
+                    const scope = (E.exportScopeSelect && E.exportScopeSelect.value) || 'current';
+                    const format = (E.exportFormatSelect && E.exportFormatSelect.value) || 'json';
+                    ui.logExport(`导出范围：${scope}，格式：${format}`);
+                    if (format === 'json') await ui.exportJSON();
+                    else if (format === 'csv') await ui.exportCSV(scope);
+                    else if (format === 'excel') await ui.exportExcel(scope);
+                    else { ui.logExport('不支持的导出格式'); ui.setExportProgress(0, '失败'); return; }
+                    ui.setExportProgress(100, '完成');
+                } catch (err) {
+                    console.error('导出失败', err);
+                    ui.logExport(`导出失败：${err && err.message ? err.message : String(err)}`);
+                    ui.setExportProgress(0, '错误');
+                }
+            };
+        }
 
         E.temperatureSlider.oninput = () => E.temperatureValue.textContent = E.temperatureSlider.value;
         E.topPSlider.oninput = () => E.topPValue.textContent = E.topPSlider.value;
