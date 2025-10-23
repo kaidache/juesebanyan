@@ -1027,9 +1027,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     S.currentSummaryPromptText = p.currentSummaryPromptText;
                     localStorage.setItem('summaryPromptText', S.currentSummaryPromptText);
                 }
-                // 注意：主要 API 设置（apiProvider/baseUrl/model/memoryCount/streamMode/temperature/topP/topK）
-                // 当前导出不包含，如需随导入替换，可在JSON中加入这些键并在此写入。
-                // 由于已清理旧值，这些配置将回落为默认或空值，避免旧配置残留。
+
+                // 新增：应用主 API 设置（若导入文件包含则覆盖），否则保留默认/当前值
+                const applyIfPresent = (key, val) => {
+                    if (val !== undefined && val !== null) {
+                        localStorage.setItem(key, String(val));
+                    }
+                };
+                applyIfPresent('apiProvider', p.apiProvider);
+                applyIfPresent('apiBaseUrl', p.apiBaseUrl);
+                applyIfPresent('apiModel', p.apiModel);
+                applyIfPresent('memoryCount', p.memoryCount);
+                applyIfPresent('streamMode', p.streamMode);
+                applyIfPresent('temperature', p.temperature);
+                applyIfPresent('topP', p.topP);
+                applyIfPresent('topK', p.topK);
 
                 // 重新加载当前组合并刷新UI
                 L.loadComboData(S.currentComboId);
@@ -1037,8 +1049,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (GameApp.ui.updateComboList) GameApp.ui.updateComboList();
                 if (GameApp.ui.updateApiKeyProfileSelector) GameApp.ui.updateApiKeyProfileSelector();
                 if (GameApp.ui.updateApiKeyProfileList) GameApp.ui.updateApiKeyProfileList();
+
+                // 刷新主 API 设置输入控件显示与 Provider 相关UI
+                if (E.apiProviderSelect) E.apiProviderSelect.value = localStorage.getItem('apiProvider') || 'openai';
+                if (E.apiBaseUrlInput) E.apiBaseUrlInput.value = localStorage.getItem('apiBaseUrl') || '';
+                if (E.apiModelInput) E.apiModelInput.value = localStorage.getItem('apiModel') || 'gpt-3.5-turbo';
+                if (E.memoryCountInput) E.memoryCountInput.value = localStorage.getItem('memoryCount') || '20';
+                if (E.streamToggle) E.streamToggle.checked = localStorage.getItem('streamMode') !== 'false';
+                if (E.temperatureSlider) {
+                    E.temperatureSlider.value = localStorage.getItem('temperature') || 0.7;
+                    if (E.temperatureValue) E.temperatureValue.textContent = E.temperatureSlider.value;
+                }
+                if (E.topPSlider) {
+                    E.topPSlider.value = localStorage.getItem('topP') || 1;
+                    if (E.topPValue) E.topPValue.textContent = E.topPSlider.value;
+                }
+                if (E.topKSlider) {
+                    E.topKSlider.value = localStorage.getItem('topK') || 40;
+                    if (E.topKValue) E.topKValue.textContent = E.topKSlider.value;
+                }
+                if (ui.toggleProviderSettings) ui.toggleProviderSettings();
+
                 GameApp.ui.refreshUI();
-                GameApp.ui.showSystemMessage({ text: '完整配置导入完成（已清空旧配置）！', type: 'system-message success' });
+                GameApp.ui.showSystemMessage({ text: '完整配置导入完成（包含主API设置）！', type: 'system-message success' });
+
+                // 导入完成后，短暂延时后自动刷新页面，确保所有UI与状态一致
+                setTimeout(() => {
+                    try {
+                        window.location.reload();
+                    } catch (e) {
+                        console.warn('自动刷新失败：', e);
+                    }
+                }, 300);
             } else if (importData.kind === 'history') {
                 // 导入到当前组合的对话历史
                 const msgs = importData.messages.map(m => ({
@@ -1075,6 +1117,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentApiKeyProfileId: S.currentApiKeyProfileId,
                 summarySettings: S.summarySettings,
                 currentSummaryPromptText: S.currentSummaryPromptText,
+                // 新增：导出主 API 设置（便于完整配置备份/迁移）
+                apiProvider: localStorage.getItem('apiProvider') || 'openai',
+                apiBaseUrl: localStorage.getItem('apiBaseUrl') || '',
+                apiModel: localStorage.getItem('apiModel') || 'gpt-3.5-turbo',
+                memoryCount: Number(localStorage.getItem('memoryCount') || '20'),
+                streamMode: localStorage.getItem('streamMode') !== 'false',
+                temperature: Number(localStorage.getItem('temperature') || '0.7'),
+                topP: Number(localStorage.getItem('topP') || '1'),
+                topK: Number(localStorage.getItem('topK') || '40'),
             };
             return data;
         };
