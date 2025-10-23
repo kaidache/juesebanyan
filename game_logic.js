@@ -736,7 +736,7 @@ const GameApp = {
             
             const historyEntry = GameApp.state.conversationHistory[msgIndex];
             historyEntry.content = newText;
-            historyEntry.statusBarContent = this.extractStatusBarFromMainContent(newText);
+            historyEntry.statusBarContent = this.extractStatusBarContent(newText);
             
             GameApp.ui.updateMessageContent(messageId, newText);
             GameApp.ui.updateStatusBarFromHistory();
