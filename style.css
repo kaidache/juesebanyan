@@ -632,6 +632,24 @@ body {
     margin-left: 4px;
 }
 
+.summary-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    font-size: 0.72em;
+    line-height: 1;
+    color: var(--text-color-muted);
+    background: rgba(0,0,0,0.06);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
+    margin-left: 6px;
+}
+
+.message-bubble.player-message .summary-badge {
+    color: #fff;
+    background: rgba(255,255,255,0.15);
+    border-color: rgba(255,255,255,0.25);
+}
+
 .message-content-wrapper {
     width: 100%;
     padding: var(--spacing-lg) var(--spacing-xl);

@@ -98,6 +98,9 @@ const GameApp = {
                 state.currentPlayerAvatar = combo.playerAvatar || GameApp.config.defaultPlayerAvatar;
                 state.currentAiAvatar = combo.aiAvatar || GameApp.config.defaultAiAvatar;
                 state.currentComboId = comboId;
+                // 根据 summarizedUntilTurnCount 重新同步 summarized 标记
+                GameApp.logic.updateSummarizedFlags();
+                if (GameApp.ui.updateSummaryBadgesFromHistory) GameApp.ui.updateSummaryBadgesFromHistory();
             }
         },
 
@@ -434,15 +437,21 @@ const GameApp = {
                 GameApp.state.summarizedUntilTurnCount = Math.max(0, oldSummarizedCount - 500);
                 this.saveHistoryToLocalStorage();
                 GameApp.ui.showSystemMessage({ text: "为了保持性能，已自动清理较早的对话记录。", type: "system-message warning" });
+                // 更新 summarized 标记以匹配新的 summarizedUntilTurnCount
+                GameApp.logic.updateSummarizedFlags();
+                if (GameApp.ui.updateSummaryBadgesFromHistory) GameApp.ui.updateSummaryBadgesFromHistory();
             }
         },
         
         resetSummaryState() {
             GameApp.state.accumulatedSummaryContent = "";
             GameApp.state.summarizedUntilTurnCount = 0;
+            // 清除每条消息的 summarized 标记
+            GameApp.state.conversationHistory.forEach(m => { if (m.role === 'user' || m.role === 'assistant') m.summarized = false; });
             localStorage.setItem('accumulatedSummaryContent', "");
             localStorage.setItem('summarizedUntilTurnCount', "0");
             GameApp.ui.updateSummaryContentDisplay(GameApp.state.accumulatedSummaryContent);
+            if (GameApp.ui.updateSummaryBadgesFromHistory) GameApp.ui.updateSummaryBadgesFromHistory();
         },
 
         async sendPlayerMessage(playerText) {
@@ -463,7 +472,8 @@ const GameApp = {
                 id: playerId,
                 role: 'user',
                 content: playerText,
-                floor: GameApp.state.currentFloorCounter
+                floor: GameApp.state.currentFloorCounter,
+                summarized: false
             };
             GameApp.state.conversationHistory.push(playerMessage);
             this.saveHistoryToLocalStorage();
@@ -493,7 +503,8 @@ const GameApp = {
                 const topP = parseFloat(localStorage.getItem('topP')) || null;
                 const topK = parseInt(localStorage.getItem('topK'), 10) || null;
 
-                const relevantHistory = GameApp.state.conversationHistory.filter(m => m.role === 'user' || m.role === 'assistant');
+                // 仅保留未被总结的对话，避免重复让AI读取“已总结”内容
+                const relevantHistory = GameApp.state.conversationHistory.filter(m => (m.role === 'user' || m.role === 'assistant') && !m.summarized);
                 const startIndex = Math.max(0, relevantHistory.length - memoryCount);
                 const recentHistory = relevantHistory.slice(startIndex);
 
@@ -603,7 +614,8 @@ const GameApp = {
                     statusBarContent: statusBarContent,
                     model: modelName,
                     floor: parseInt(tempAiBubble.dataset.floorId, 10),
-                    mediaContent: mediaContent // 添加媒体内容字段
+                    mediaContent: mediaContent,
+                    summarized: false
                 };
                 GameApp.state.conversationHistory.push(aiMessage);
                 this.saveHistoryToLocalStorage();
@@ -707,6 +719,9 @@ const GameApp = {
         
                 GameApp.state.summarizedUntilTurnCount = endTurn;
                 localStorage.setItem('summarizedUntilTurnCount', GameApp.state.summarizedUntilTurnCount.toString());
+                // 更新 summarized 标记并刷新徽章显示
+                GameApp.logic.updateSummarizedFlags();
+                if (GameApp.ui.updateSummaryBadgesFromHistory) GameApp.ui.updateSummaryBadgesFromHistory();
         
                 if (summaryText && summaryText.trim() !== "") {
                    GameApp.state.accumulatedSummaryContent += (GameApp.state.accumulatedSummaryContent ? "\n\n" : "") + summaryText;
@@ -746,7 +761,7 @@ const GameApp = {
             this.saveHistoryToLocalStorage();
         },
 
-        async savePlayerMessageEdit(messageId, newText) {
+        async sendPlayerMessageEdit(messageId, newText) {
             if (GameApp.state.isAiResponding || GameApp.state.isSummarizing) {
                 GameApp.ui.showSystemMessage({ text: "AI正在处理任务，请稍候...", type: "system-message warning" });
                 return;
@@ -946,6 +961,13 @@ const GameApp = {
             }
             
             return mediaContent;
+        },
+
+        updateSummarizedFlags() {
+            const relevant = GameApp.state.conversationHistory.filter(m => m.role === 'user' || m.role === 'assistant');
+            relevant.forEach((m, idx) => {
+                m.summarized = idx < GameApp.state.summarizedUntilTurnCount;
+            });
         }
     }
 };

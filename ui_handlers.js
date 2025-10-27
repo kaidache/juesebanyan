@@ -220,9 +220,15 @@ document.addEventListener('DOMContentLoaded', () => {
                     floorSpan.textContent = `#${floor}`;
                 }
 
+                const summaryBadge = document.createElement('span');
+                summaryBadge.className = 'summary-badge';
+                summaryBadge.textContent = '已总结';
+                summaryBadge.style.display = messageData.summarized ? '' : 'none';
+
                 headerDiv.appendChild(avatarImg);
                 headerDiv.appendChild(nameSpan);
                 headerDiv.appendChild(floorSpan);
+                headerDiv.appendChild(summaryBadge);
 
                 const contentWrapper = document.createElement('div');
                 contentWrapper.className = 'message-content-wrapper';
@@ -676,6 +682,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 modelSpan.textContent = `(模型: ${messageData.model})`;
                 contentWrapper.appendChild(modelSpan);
             }
+
+            if (GameApp.ui.updateMessageSummaryBadge) {
+                GameApp.ui.updateMessageSummaryBadge(messageData.id, !!messageData.summarized);
+            }
+
             contentWrapper.appendChild(actionsDiv);
         };
         
@@ -705,6 +716,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 const content = L.removeStatusBarFromMainContent(newText);
                 if(textSpan) textSpan.innerHTML = formatMessageText(content);
              }
+        };
+
+        ui.updateMessageSummaryBadge = (messageId, summarized) => {
+            const bubble = E.gameOutputDiv.querySelector(`[data-message-id="${messageId}"]`);
+            if (!bubble) return;
+            const headerDiv = bubble.querySelector('.message-header');
+            if (!headerDiv) return;
+            let badge = headerDiv.querySelector('.summary-badge');
+            if (!badge) {
+                badge = document.createElement('span');
+                badge.className = 'summary-badge';
+                badge.textContent = '已总结';
+                headerDiv.appendChild(badge);
+            }
+            badge.style.display = summarized ? '' : 'none';
+        };
+
+        ui.updateSummaryBadgesFromHistory = () => {
+            const S = GameApp.state;
+            S.conversationHistory.forEach(m => {
+                if (m && (m.role === 'user' || m.role === 'assistant') && m.id != null) {
+                    ui.updateMessageSummaryBadge(m.id, !!m.summarized);
+                }
+            });
         };
 
         ui.removeMessageDOM = (messageId) => {
@@ -920,7 +955,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 role: header.indexOf('role'),
                 content: header.indexOf('content'),
                 status: header.indexOf('statusbarcontent'),
-                model: header.indexOf('modelname')
+                model: header.indexOf('modelname'),
+                summarized: header.indexOf('summarized')
             };
             const messages = [];
             for (let r = 1; r < rows.length; r++) {
@@ -931,10 +967,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const floorStr = idx.floor >= 0 ? row[idx.floor] : '';
                 const statusBarContent = idx.status >= 0 ? row[idx.status] : '';
                 const modelName = idx.model >= 0 ? row[idx.model] : '';
+                const summarizedStr = idx.summarized >= 0 ? (row[idx.summarized] || '') : '';
                 const id = idStr ? parseInt(idStr, 10) : undefined;
                 const floor = floorStr ? parseInt(floorStr, 10) : undefined;
+                const summarized = /^(true|1|yes)$/i.test(String(summarizedStr).trim());
                 if (!content) continue;
-                messages.push({ id, floor, role: role === 'assistant' ? 'assistant' : 'user', content, statusBarContent, modelName });
+                messages.push({ id, floor, role: role === 'assistant' ? 'assistant' : 'user', content, statusBarContent, modelName, summarized });
             }
             // 重新分配ID与楼层（如缺失）
             let counter = 1;
@@ -960,9 +998,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const floorStr = keys['floor'] || '';
                 const statusBarContent = keys['statusbarcontent'] || '';
                 const modelName = keys['modelname'] || '';
+                const summarizedStr = keys['summarized'] || '';
                 const id = idStr ? parseInt(idStr, 10) : undefined;
                 const floor = floorStr ? parseInt(floorStr, 10) : undefined;
-                return { id, floor, role: role === 'assistant' ? 'assistant' : 'user', content, statusBarContent, modelName };
+                const summarized = /^(true|1|yes)$/i.test(String(summarizedStr).trim());
+                return { id, floor, role: role === 'assistant' ? 'assistant' : 'user', content, statusBarContent, modelName, summarized };
             }).filter(m => m.content);
             let counter = 1; messages.forEach(m => { if (m.id == null) m.id = counter++; });
             let floorCounter = 1; messages.forEach(m => { if (m.role === 'user' || m.role === 'assistant') { m.floor = floorCounter++; } });
@@ -1089,7 +1129,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     role: m.role === 'assistant' ? 'assistant' : 'user',
                     content: String(m.content || ''),
                     statusBarContent: m.statusBarContent || '',
-                    modelName: m.modelName || ''
+                    modelName: m.modelName || '',
+                    summarized: !!m.summarized
                 })).filter(m => m.content);
                 let counter = 1; msgs.forEach(m => { if (m.id == null) m.id = counter++; });
                 let floorCounter = 1; msgs.forEach(m => { if (m.role === 'user' || m.role === 'assistant') { m.floor = floorCounter++; } });
@@ -1098,6 +1139,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentCombo.conversationHistory = msgs;
                     currentCombo.messageIdCounter = Math.max(0, ...msgs.map(x => x.id || 0)) + 1;
                     currentCombo.currentFloorCounter = floorCounter;
+                    // 依据导入的 summarized 标记估算 summarizedUntilTurnCount（从对话起始连续的已摘要消息数）
+                    const relevant = msgs.filter(m => m.role === 'user' || m.role === 'assistant');
+                    let untilCount = 0;
+                    for (let i = 0; i < relevant.length; i++) {
+                        if (relevant[i].summarized) untilCount++; else break;
+                    }
+                    currentCombo.summarizedUntilTurnCount = untilCount;
                     // 同步到活动状态
                     L.saveAllCombosToStorage();
                     L.loadComboData(S.currentComboId);
@@ -1173,7 +1221,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const comboId = combos[0];
             const combo = S.promptCombos[comboId];
-            const rows = [['id','floor','role','content','statusBarContent','modelName']];
+            const rows = [['id','floor','role','content','statusBarContent','modelName','summarized']];
             combo.conversationHistory.forEach(m => {
                 rows.push([
                     m.id ?? '',
@@ -1181,7 +1229,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     m.role ?? '',
                     (m.content || '').replace(/"/g, '""'),
                     (m.statusBarContent || '').replace(/"/g, '""'),
-                    m.modelName || ''
+                    m.modelName || '',
+                    m.summarized ? 'true' : 'false'
                 ].map(x => `"${String(x)}"`));
             });
             const csv = rows.map(r => r.join(',')).join('\r\n');
@@ -1204,7 +1253,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     role: m.role ?? '',
                     content: m.content || '',
                     statusBarContent: m.statusBarContent || '',
-                    modelName: m.modelName || ''
+                    modelName: m.modelName || '',
+                    summarized: !!m.summarized
                 }));
                 const ws = XLSX.utils.json_to_sheet(json);
                 XLSX.utils.book_append_sheet(wb, ws, (combo.name || comboId).slice(0, 31));
