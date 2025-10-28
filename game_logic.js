@@ -761,6 +761,20 @@ const GameApp = {
             this.saveHistoryToLocalStorage();
         },
 
+        savePlayerMessageEdit(messageId, newText) {
+            const msgIndex = GameApp.state.conversationHistory.findIndex(msg => msg.id === messageId && msg.role === 'user');
+            if (msgIndex === -1) return;
+
+            const historyEntry = GameApp.state.conversationHistory[msgIndex];
+            historyEntry.content = newText;
+
+            GameApp.ui.updateMessageContent(messageId, newText);
+            GameApp.ui.toggleEditState(messageId, 'user', false);
+            const displayFloor = historyEntry.floor || messageId;
+            GameApp.ui.showSystemMessage({ text: `玩家消息 #${displayFloor} 已被修改。`, type: "system-message success" });
+            this.saveHistoryToLocalStorage();
+        },
+
         async sendPlayerMessageEdit(messageId, newText) {
             if (GameApp.state.isAiResponding || GameApp.state.isSummarizing) {
                 GameApp.ui.showSystemMessage({ text: "AI正在处理任务，请稍候...", type: "system-message warning" });

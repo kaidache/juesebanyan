@@ -770,11 +770,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const controls = document.createElement('div');
                 controls.className = 'edit-controls';
-                const saveBtn = createActionButton("保存", "保存修改", () => role === 'assistant' ? L.saveAiMessageEdit(messageId, textarea.value) : L.savePlayerMessageEdit(messageId, textarea.value));
-                saveBtn.classList.add('save-edit-btn', 'btn', 'btn-small');
+                // 仅保存
+                const saveOnlyBtn = createActionButton("仅保存", "保存修改但不继续生成", () => {
+                    if (role === 'assistant') {
+                        L.saveAiMessageEdit(messageId, textarea.value);
+                    } else {
+                        L.savePlayerMessageEdit(messageId, textarea.value);
+                    }
+                });
+                saveOnlyBtn.classList.add('save-edit-btn', 'btn', 'btn-small');
+
+                // 保存并继续生成
+                const saveAndContinueBtn = createActionButton("保存并继续生成", "保存修改并继续生成后续内容", async () => {
+                    if (role === 'assistant') {
+                        L.saveAiMessageEdit(messageId, textarea.value);
+                        await L.refreshAiMessage(messageId);
+                    } else {
+                        await L.sendPlayerMessageEdit(messageId, textarea.value);
+                    }
+                });
+                saveAndContinueBtn.classList.add('save-continue-edit-btn', 'btn', 'btn-small');
+
                 const cancelBtn = createActionButton("取消", "取消编辑", () => ui.toggleEditState(messageId, role, false));
                 cancelBtn.classList.add('cancel-edit-btn', 'btn', 'btn-small');
-                controls.appendChild(saveBtn);
+                controls.appendChild(saveOnlyBtn);
+                controls.appendChild(saveAndContinueBtn);
                 controls.appendChild(cancelBtn);
 
                 wrapper.appendChild(textarea);
