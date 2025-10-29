@@ -503,6 +503,11 @@ const GameApp = {
                 const topP = parseFloat(localStorage.getItem('topP')) || null;
                 const topK = parseInt(localStorage.getItem('topK'), 10) || null;
 
+                // 在流式输出场景中，禁止自动滚动到底部，保持用户当前阅读位置
+                if (stream) {
+                    GameApp.state.autoScrollEnabled = false;
+                }
+
                 // 仅保留未被总结的对话，避免重复让AI读取“已总结”内容
                 const relevantHistory = GameApp.state.conversationHistory.filter(m => (m.role === 'user' || m.role === 'assistant') && !m.summarized);
                 const startIndex = Math.max(0, relevantHistory.length - memoryCount);
@@ -639,6 +644,8 @@ const GameApp = {
                 GameApp.state.isAiResponding = false;
                 GameApp.ui.setSendButtonState(true);
                 GameApp.state.currentAbortController = null;
+                // 结束流式输出后，恢复默认的自动滚动行为
+                GameApp.state.autoScrollEnabled = true;
             }
         },
 
