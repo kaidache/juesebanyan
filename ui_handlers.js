@@ -124,8 +124,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 ui.showSystemMessage({ text: "AI正在处理任务，请稍候...", type: "system-message warning" });
                 return;
             }
-            // 触发动作（如发送消息）前，恢复自动滚动
-            S.autoScrollEnabled = true;
             callback(...args);
         };
     };
@@ -159,9 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return 'system-message';
         };
 
-        // 统一的滚动到底部函数（带自动滚动开关和回退）
+        // 统一的滚动到底部函数（保留但不再自动调用）
         ui.scrollToBottom = (behavior = 'smooth') => {
-            if (!S.autoScrollEnabled) return;
             setTimeout(() => {
                 if (E.gameOutputDiv) {
                     const top = E.gameOutputDiv.scrollHeight;
@@ -303,8 +300,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 bubble.appendChild(contentWrapper);
             }
 
+            const prevScrollTop = E.gameOutputDiv ? E.gameOutputDiv.scrollTop : null;
             E.gameOutputDiv.appendChild(bubble);
-            ui.scrollToBottom();
+            // 保持用户当前浏览位置，不自动滚动
+            if (E.gameOutputDiv && prevScrollTop !== null) {
+                E.gameOutputDiv.scrollTop = prevScrollTop;
+            }
             ui.recalculateFloorsAndCounter();
             return bubble;
         };
@@ -551,8 +552,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             // 无论是否有对话历史，都需要更新状态栏
             ui.updateStatusBarFromHistory();
-            
-            ui.scrollToBottom();
+            // 保持当前滚动位置，不进行自动滚动
         };
 
         ui.recalculateFloorsAndCounter = () => {
@@ -654,9 +654,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-        
+            const prevScrollTop = E.gameOutputDiv ? E.gameOutputDiv.scrollTop : null;
             textSpan.innerHTML = formatMessageText(mainContent);
-            ui.scrollToBottom();
+            // 流式输出过程中保持滚动位置
+            if (E.gameOutputDiv && prevScrollTop !== null) {
+                E.gameOutputDiv.scrollTop = prevScrollTop;
+            }
         };
 
         ui.finalizeStreamingMessage = (bubble, mainContent, messageData) => {
@@ -1295,7 +1298,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const L = GameApp.logic;
         const ui = GameApp.ui;
 
-        E.sendButton.onclick = () => { const text = E.playerInput.value.trim(); if(text) { S.autoScrollEnabled = true; L.sendPlayerMessage(text); } };
+        E.sendButton.onclick = () => { const text = E.playerInput.value.trim(); if(text) { L.sendPlayerMessage(text); } };
         E.playerInput.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); E.sendButton.click(); }};
         E.playerInput.oninput = () => ui.autoResizeTextarea(E.playerInput);
         // 绑定中断按钮：可中断当前 AI 回复或总结
@@ -1831,8 +1834,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         // 无论是否有对话历史，都需要更新状态栏
         ui.updateStatusBarFromHistory();
-        
-        ui.scrollToBottom();
+        // 保持当前滚动位置，不进行自动滚动
     };
 
     initializeApp();
