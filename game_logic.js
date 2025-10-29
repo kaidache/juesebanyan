@@ -32,6 +32,8 @@ const GameApp = {
 
         isAiResponding: false,
         isSummarizing: false,
+        // 导入过程保护标志：导入期间阻止任何保存写入，避免状态错乱
+        isImporting: false,
         currentAbortController: null,
         summaryAbortController: null,
 
@@ -66,6 +68,8 @@ const GameApp = {
         // 组合管理方法
         saveCurrentComboData() {
             const state = GameApp.state;
+            // 导入期间不进行任何状态写回，防止旧状态覆盖导入数据
+            if (state.isImporting) return;
             const currentCombo = state.promptCombos[state.currentComboId];
             if (currentCombo) {
                 currentCombo.conversationHistory = [...state.conversationHistory];
@@ -301,6 +305,8 @@ const GameApp = {
         },
 
         saveHistoryToLocalStorage() {
+            // 导入期间跳过保存，避免旧状态写入
+            if (GameApp.state.isImporting) return;
             // 保存当前组合数据
             this.saveCurrentComboData();
             this.saveAllCombosToStorage();
@@ -420,8 +426,8 @@ const GameApp = {
                 currentCombo.currentStatusBarSourceMessageId = null;
             }
             
-            // 保存到本地存储
-            this.saveHistoryToLocalStorage();
+            // 保存到本地存储（仅持久化已清理的历史相关字段，避免误覆盖提示词）
+            this.saveAllCombosToStorage();
         },
 
         generateMessageId: () => GameApp.state.messageIdCounter++,

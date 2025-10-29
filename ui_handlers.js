@@ -1067,7 +1067,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         ui.applyImportedData = async (importData) => {
             if (!importData) return;
+            try {
             if (importData.kind === 'full') {
+                // 标记导入进行中，阻止并发保存导致的数据覆盖
+                GameApp.state.isImporting = true;
                 // 先彻底清理旧配置
                 ui.clearAllConfigStorage();
                 const p = importData.payload || {};
@@ -1183,6 +1186,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     GameApp.ui.refreshUI();
                     GameApp.ui.showSystemMessage({ text: `对话历史导入完成（共 ${msgs.length} 条）。`, type: 'system-message success' });
                 }
+            }
+            } finally {
+                // 结束导入保护，恢复正常保存行为
+                GameApp.state.isImporting = false;
             }
         };
 
