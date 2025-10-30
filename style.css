@@ -2158,3 +2158,53 @@ input[type="range"]:hover::-moz-range-thumb {
         background-color: var(--panel-bg);
     }
 }
+
+/* 移动端<=768px：将 h1 与折叠按钮并排，按钮组下移，占满第二行 */
+@media (max-width: 768px) {
+    .header-actions {
+        display: grid;
+        grid-template-columns: 1fr auto; /* 左侧标题，右侧折叠按钮 */
+        grid-template-rows: auto auto;    /* 第一行标题+折叠按钮，第二行按钮组 */
+        align-items: center;
+        gap: 10px; /* 保持8–12px间距 */
+        width: 100%;
+    }
+
+    .header-actions h1 {
+        grid-column: 1;
+        grid-row: 1;
+        justify-self: start;
+        align-self: center;
+        margin: 0;
+    }
+
+    /* 让 toolbar-area 的子元素参与到父网格布局，以便将折叠按钮放在标题旁 */
+    .toolbar-area {
+        grid-column: 2;
+        grid-row: 1;
+        display: contents; /* 将内部子项提升为父网格的直接参与者 */
+    }
+
+    /* 折叠按钮与标题同排 */
+    #toolbarCollapseBtn {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: end;
+        align-self: center;
+        height: 36px;           /* 提升触控可点击面积 */
+        line-height: 36px;
+        padding: 0 12px;
+        touch-action: manipulation;
+    }
+
+    /* 工具按钮容器下移至第二行，填满宽度 */
+    .header-buttons-container {
+        grid-column: 1 / -1;    /* 跨越整行 */
+        grid-row: 2;
+        justify-self: center;
+        width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+    }
+}
