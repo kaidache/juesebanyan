@@ -1771,6 +1771,19 @@ input[type="range"]:hover::-moz-range-thumb {
     transform: translateY(0);
 }
 
+/* 折叠按钮图标（SVG）样式与回退字体栈 */
+.toolbar-collapse-btn {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", Arial, sans-serif;
+}
+.toolbar-collapse-btn .icon {
+    display: block;
+    fill: currentColor;
+    transition: transform 0.3s ease;
+}
+.toolbar-collapse-btn.is-collapsed .icon {
+    transform: rotate(-90deg); /* 折叠时图标指向右侧，表示可展开 */
+}
+
 .toolbar-tooltip {
     position: absolute;
     right: 44px; /* 折叠按钮右侧间距 */
@@ -1817,17 +1830,11 @@ input[type="range"]:hover::-moz-range-thumb {
     }
     .toolbar-area .header-buttons-container {
         max-width: 100%;
-        max-height: 44px;        /* 移动端展开高度上限 */
+        max-height: 600px;       /* 移动端展开高度上限（足够容纳多行按钮） */
     }
     .toolbar-area.toolbar-collapsed .header-buttons-container {
         max-width: 0;
         max-height: 0;           /* 移动端折叠时高度为 0 */
-    }
-    .toolbar-tooltip {
-        right: auto;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        max-width: 90vw;
     }
 }
 
@@ -1882,10 +1889,10 @@ input[type="range"]:hover::-moz-range-thumb {
         grid-row: 3;
         justify-self: center;
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
         gap: var(--spacing-xs);
         width: 100%;
-        max-width: 300px;
+        max-width: 100%;
     }
     /* 移动端：将 toolbar-area 作为网格项，并在折叠时收窄列，避免空白 */
     .toolbar-area {
@@ -1906,10 +1913,10 @@ input[type="range"]:hover::-moz-range-thumb {
     .toolbar-area .header-buttons-container {
         grid-column: 1;
         display: grid;
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
         gap: var(--spacing-xs);
         width: 100%;
-        max-width: 300px;
+        max-width: 100%;
     }
     .toolbar-area .toolbar-collapse-btn {
         grid-column: 2;

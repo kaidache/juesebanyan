@@ -198,17 +198,11 @@
                         <button id="openImportExportBtn" class="btn btn-secondary" title="导入或导出配置与对话">导入导出</button>
                         <button id="mainSettingsToggleBtn" class="btn btn-primary" title="打开主设置面板">⚙️ 设置</button>
                     </div>
-                    <button id="toolbarCollapseBtn" class="toolbar-collapse-btn" aria-expanded="true" aria-label="折叠工具栏" title="折叠工具栏">⮟</button>
-                    <div class="toolbar-tooltip" id="toolbarTooltip" role="tooltip">
-                        <div class="tooltip-title">工具栏功能</div>
-                        <ul class="tooltip-list">
-                            <li>头像：编辑玩家与 AI 头像</li>
-                            <li>清空：清空当前组合的对话与总结</li>
-                            <li>提示词：打开提示词与前后置设置</li>
-                            <li>导入导出：导入/导出配置与对话</li>
-                            <li>设置：打开主设置面板</li>
-                        </ul>
-                    </div>
+                    <button id="toolbarCollapseBtn" class="toolbar-collapse-btn" aria-expanded="true" aria-label="折叠工具栏" title="折叠工具栏">
+                        <svg class="icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z" />
+                        </svg>
+                    </button>
                 </div>
             </div>
         </header>
@@ -566,7 +560,6 @@
         document.addEventListener('DOMContentLoaded', function(){
             const toolbarArea = document.getElementById('toolbarArea');
             const collapseBtn = document.getElementById('toolbarCollapseBtn');
-            const tooltip = document.getElementById('toolbarTooltip');
 
             const STORAGE_KEY = 'toolbarCollapsed';
             const isCollapsedStored = localStorage.getItem(STORAGE_KEY);
@@ -575,13 +568,13 @@
             function applyCollapsedState(collapsed){
                 if(collapsed){
                     toolbarArea.classList.add('toolbar-collapsed');
+                    collapseBtn.classList.add('is-collapsed');
                     collapseBtn.setAttribute('aria-expanded', 'false');
-                    collapseBtn.textContent = '⮞'; // 展开指示箭头
                     collapseBtn.setAttribute('title', '展开工具栏');
                 }else{
                     toolbarArea.classList.remove('toolbar-collapsed');
+                    collapseBtn.classList.remove('is-collapsed');
                     collapseBtn.setAttribute('aria-expanded', 'true');
-                    collapseBtn.textContent = '⮟'; // 折叠指示箭头
                     collapseBtn.setAttribute('title', '折叠工具栏');
                 }
             }
@@ -594,15 +587,7 @@
                 localStorage.setItem(STORAGE_KEY, String(willCollapse));
             });
 
-            // 折叠状态下，鼠标悬停折叠按钮显示提示
-            collapseBtn.addEventListener('mouseenter', function(){
-                if(toolbarArea.classList.contains('toolbar-collapsed')){
-                    tooltip.classList.add('visible');
-                }
-            });
-            collapseBtn.addEventListener('mouseleave', function(){
-                tooltip.classList.remove('visible');
-            });
+            // 移除了移动端提示弹窗逻辑
         });
     </script>
 </body>
