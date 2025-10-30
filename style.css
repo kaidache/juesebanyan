@@ -1887,6 +1887,35 @@ input[type="range"]:hover::-moz-range-thumb {
         width: 100%;
         max-width: 300px;
     }
+    /* 移动端：将 toolbar-area 作为网格项，并在折叠时收窄列，避免空白 */
+    .toolbar-area {
+        grid-column: 1;
+        grid-row: 3;
+        justify-self: center;
+        width: 100%;
+        max-width: 300px;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: var(--spacing-xs);
+    }
+    .toolbar-area.toolbar-collapsed {
+        grid-template-columns: auto; /* 折叠时仅保留按钮列，消除占位 */
+        gap: 0;
+    }
+    .toolbar-area .header-buttons-container {
+        grid-column: 1;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: var(--spacing-xs);
+        width: 100%;
+        max-width: 300px;
+    }
+    .toolbar-area .toolbar-collapse-btn {
+        grid-column: 2;
+        height: 32px;
+        line-height: 32px;
+    }
     
     .header-buttons-container .btn {
         width: 100%;
@@ -2020,6 +2049,36 @@ input[type="range"]:hover::-moz-range-thumb {
         width: 100%;
         max-width: 400px;
         justify-content: center;
+    }
+    /* 平板竖屏：将 toolbar-area 作为网格项并控制内部换行，折叠时不留空白 */
+    .toolbar-area {
+        grid-column: 1;
+        grid-row: 3;
+        justify-self: center;
+        width: 100%;
+        max-width: 400px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--spacing-xs);
+        justify-content: center;
+    }
+    .toolbar-area.toolbar-collapsed {
+        gap: 0; /* 折叠时消除列间隙 */
+    }
+    .toolbar-area .header-buttons-container {
+        flex: 1 1 auto;
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing-xs);
+        width: 100%;
+        max-width: 400px;
+        justify-content: center;
+    }
+    .toolbar-area .toolbar-collapse-btn {
+        flex: 0 0 auto;
+        height: 32px;
+        line-height: 32px;
     }
     
     .header-buttons-container .btn {
