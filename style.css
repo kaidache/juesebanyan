@@ -1708,6 +1708,129 @@ input[type="range"]:hover::-moz-range-thumb {
     align-items: center;
 }
 
+/* ===== 工具栏折叠样式与动画 ===== */
+.toolbar-area {
+    grid-column: 2;
+    grid-row: 2;
+    display: flex;
+    align-items: center;
+    justify-self: end;
+    gap: var(--spacing-xs);
+    position: relative;
+}
+
+.toolbar-area .header-buttons-container {
+    overflow: hidden;
+    transition: max-width 0.3s ease, max-height 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
+    max-width: 700px; /* 展开时的上限，足够容纳所有按钮 */
+    max-height: 40px; /* 展开时的上限高度，避免占用多余垂直空间 */
+    opacity: 1;
+    transform: translateX(0);
+    flex: 0 0 auto; /* 防止占满可用空间，便于 max-width 控制 */
+    width: auto;
+    height: auto;
+}
+
+.toolbar-area.toolbar-collapsed .header-buttons-container {
+    max-width: 0;
+    width: 0;            /* 彻底收窄至 0 宽度 */
+    max-height: 0;       /* 折叠时高度为 0，避免多余空白 */
+    height: 0;
+    flex: 0 0 0;         /* 不参与伸缩计算 */
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0;
+    transform: translateX(8px);
+    pointer-events: none;
+}
+
+.toolbar-area.toolbar-collapsed {
+    gap: 0; /* 折叠时不保留多余空隙 */
+}
+
+.toolbar-collapse-btn {
+    background: var(--panel-bg);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    padding: 0 8px;            /* 精准控制水平占位 */
+    height: 28px;              /* 紧凑高度以减少占位 */
+    line-height: 28px;         /* 垂直居中箭头 */
+    min-width: 30px;           /* 最小必要宽度 */
+    margin: 0;                 /* 清除多余外边距 */
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: background 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.toolbar-collapse-btn:hover {
+    background: var(--input-bg);
+    transform: translateY(-1px);
+    border-color: var(--border-color-light);
+}
+.toolbar-collapse-btn:active {
+    transform: translateY(0);
+}
+
+.toolbar-tooltip {
+    position: absolute;
+    right: 44px; /* 折叠按钮右侧间距 */
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--panel-bg-light);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-md);
+    padding: 8px 10px;
+    width: max-content;
+    max-width: 280px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+    z-index: 1000;
+}
+.toolbar-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+}
+.toolbar-tooltip .tooltip-title {
+    font-weight: 600;
+    color: var(--accent-color);
+    margin-bottom: 6px;
+}
+.toolbar-tooltip .tooltip-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 0.82rem;
+    color: var(--text-color-secondary);
+}
+
+/* 响应式：在小屏保持控件可用并居中 */
+@media (max-width: 600px) {
+    .toolbar-area {
+        justify-self: center;
+        gap: var(--spacing-xs);
+    }
+    .toolbar-area .header-buttons-container {
+        max-width: 100%;
+        max-height: 44px;        /* 移动端展开高度上限 */
+    }
+    .toolbar-area.toolbar-collapsed .header-buttons-container {
+        max-width: 0;
+        max-height: 0;           /* 移动端折叠时高度为 0 */
+    }
+    .toolbar-tooltip {
+        right: auto;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        max-width: 90vw;
+    }
+}
+
 /* 按钮容器自适应布局 */
 .header-buttons-container .btn {
     flex: 0 0 auto;

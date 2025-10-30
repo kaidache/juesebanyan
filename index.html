@@ -190,12 +190,25 @@
                     </select>
                     <button id="manageComboBtn" class="btn btn-combo" title="管理提示词组合">管理</button>
                 </div>
-                <div class="header-buttons-container">
-                    <button id="editAvatarsBtn" class="btn btn-secondary" title="编辑玩家与AI头像">头像</button>
-                    <button id="clearHistoryBtn" class="btn btn-secondary" title="清空当前组合的对话记录和总结">清空</button>
-                    <button id="promptSettingsToggleBtn" class="btn btn-secondary" title="打开提示词与前后置设置">提示词</button>
-                    <button id="openImportExportBtn" class="btn btn-secondary" title="导入或导出配置与对话">导入导出</button>
-                    <button id="mainSettingsToggleBtn" class="btn btn-primary" title="打开主设置面板">⚙️ 设置</button>
+                <div class="toolbar-area" id="toolbarArea">
+                    <div class="header-buttons-container">
+                        <button id="editAvatarsBtn" class="btn btn-secondary" title="编辑玩家与AI头像">头像</button>
+                        <button id="clearHistoryBtn" class="btn btn-secondary" title="清空当前组合的对话记录和总结">清空</button>
+                        <button id="promptSettingsToggleBtn" class="btn btn-secondary" title="打开提示词与前后置设置">提示词</button>
+                        <button id="openImportExportBtn" class="btn btn-secondary" title="导入或导出配置与对话">导入导出</button>
+                        <button id="mainSettingsToggleBtn" class="btn btn-primary" title="打开主设置面板">⚙️ 设置</button>
+                    </div>
+                    <button id="toolbarCollapseBtn" class="toolbar-collapse-btn" aria-expanded="true" aria-label="折叠工具栏" title="折叠工具栏">⮟</button>
+                    <div class="toolbar-tooltip" id="toolbarTooltip" role="tooltip">
+                        <div class="tooltip-title">工具栏功能</div>
+                        <ul class="tooltip-list">
+                            <li>头像：编辑玩家与 AI 头像</li>
+                            <li>清空：清空当前组合的对话与总结</li>
+                            <li>提示词：打开提示词与前后置设置</li>
+                            <li>导入导出：导入/导出配置与对话</li>
+                            <li>设置：打开主设置面板</li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </header>
@@ -546,6 +559,49 @@
                 }else{
                     toggleBtn.textContent = "➖ 收起状态栏";
                 }
+            });
+        });
+
+        // 工具栏折叠/展开逻辑（带本地存储与动画）
+        document.addEventListener('DOMContentLoaded', function(){
+            const toolbarArea = document.getElementById('toolbarArea');
+            const collapseBtn = document.getElementById('toolbarCollapseBtn');
+            const tooltip = document.getElementById('toolbarTooltip');
+
+            const STORAGE_KEY = 'toolbarCollapsed';
+            const isCollapsedStored = localStorage.getItem(STORAGE_KEY);
+            const initiallyCollapsed = isCollapsedStored === 'true';
+
+            function applyCollapsedState(collapsed){
+                if(collapsed){
+                    toolbarArea.classList.add('toolbar-collapsed');
+                    collapseBtn.setAttribute('aria-expanded', 'false');
+                    collapseBtn.textContent = '⮞'; // 展开指示箭头
+                    collapseBtn.setAttribute('title', '展开工具栏');
+                }else{
+                    toolbarArea.classList.remove('toolbar-collapsed');
+                    collapseBtn.setAttribute('aria-expanded', 'true');
+                    collapseBtn.textContent = '⮟'; // 折叠指示箭头
+                    collapseBtn.setAttribute('title', '折叠工具栏');
+                }
+            }
+
+            applyCollapsedState(initiallyCollapsed);
+
+            collapseBtn.addEventListener('click', function(){
+                const willCollapse = !toolbarArea.classList.contains('toolbar-collapsed');
+                applyCollapsedState(willCollapse);
+                localStorage.setItem(STORAGE_KEY, String(willCollapse));
+            });
+
+            // 折叠状态下，鼠标悬停折叠按钮显示提示
+            collapseBtn.addEventListener('mouseenter', function(){
+                if(toolbarArea.classList.contains('toolbar-collapsed')){
+                    tooltip.classList.add('visible');
+                }
+            });
+            collapseBtn.addEventListener('mouseleave', function(){
+                tooltip.classList.remove('visible');
             });
         });
     </script>
