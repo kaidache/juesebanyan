@@ -522,6 +522,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 comboItem.onclick = () => {
                     if (comboId !== S.currentComboId) {
+                        // 忙碌保护：AI响应或总结过程中禁止切换，避免跨组合覆盖
+                        if (S.isAiResponding || S.isSummarizing) {
+                            ui.showSystemMessage({ text: 'AI/总结进行中，暂不可切换组合', type: 'system-message error' });
+                            return;
+                        }
                         L.switchToCombo(comboId);
                         ui.updateComboList();
                         ui.updateComboSelector();
@@ -1611,8 +1616,10 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.setItem('summaryApiModel', S.summarySettings.model);
             localStorage.setItem('summaryPromptText', S.currentSummaryPromptText);
             
+            // 按组合持久化总结内容：更新当前状态并写回组合
             S.accumulatedSummaryContent = E.summaryContentDisplay.value;
-            localStorage.setItem('accumulatedSummaryContent', S.accumulatedSummaryContent);
+            L.saveCurrentComboData();
+            L.saveAllCombosToStorage();
             
             // 保存后清除用户修改标记
             E.summaryContentDisplay.dataset.userModified = 'false';
@@ -1670,6 +1677,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (E.newComboBtn) {
             E.newComboBtn.onclick = async () => {
+                // 忙碌保护：AI响应或总结过程中禁止创建并切换，避免跨组合覆盖
+                if (S.isAiResponding || S.isSummarizing) {
+                    ui.showSystemMessage({ text: 'AI/总结进行中，暂不可创建组合', type: 'system-message error' });
+                    return;
+                }
                 const comboCount = Object.keys(S.promptCombos).length;
                 if (comboCount >= 10) {
                     ui.showSystemMessage({ text: '最多只能创建10个组合！', type: 'system-message error' });
@@ -1703,6 +1715,11 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (E.deleteComboBtn) {
             E.deleteComboBtn.onclick = () => {
+                // 忙碌保护：AI响应或总结过程中禁止删除，避免触发切换造成覆盖
+                if (S.isAiResponding || S.isSummarizing) {
+                    ui.showSystemMessage({ text: 'AI/总结进行中，暂不可删除组合', type: 'system-message error' });
+                    return;
+                }
                 if (Object.keys(S.promptCombos).length <= 1) {
                     ui.showSystemMessage({ text: '至少需要保留一个组合！', type: 'system-message error' });
                     return;
@@ -1710,8 +1727,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const currentCombo = S.promptCombos[S.currentComboId];
                 if (confirm(`确定要删除组合 "${currentCombo.name}" 吗？这将永久删除该组合的所有数据！`)) {
-                    const newComboId = L.deleteCombo(S.currentComboId);
-                    L.switchToCombo(newComboId);
+                    const deletedOk = L.deleteCombo(S.currentComboId);
+                    // deleteCombo在删除当前组合时会自动加载首个可用组合
                     ui.updateComboSelector();
                     ui.updateComboList();
                     ui.refreshUI();

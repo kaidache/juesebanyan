@@ -454,8 +454,9 @@ const GameApp = {
             GameApp.state.summarizedUntilTurnCount = 0;
             // 清除每条消息的 summarized 标记
             GameApp.state.conversationHistory.forEach(m => { if (m.role === 'user' || m.role === 'assistant') m.summarized = false; });
-            localStorage.setItem('accumulatedSummaryContent', "");
-            localStorage.setItem('summarizedUntilTurnCount', "0");
+            // 按组合持久化总结相关内容
+            GameApp.logic.saveCurrentComboData();
+            GameApp.logic.saveAllCombosToStorage();
             GameApp.ui.updateSummaryContentDisplay(GameApp.state.accumulatedSummaryContent);
             if (GameApp.ui.updateSummaryBadgesFromHistory) GameApp.ui.updateSummaryBadgesFromHistory();
         },
@@ -731,14 +732,18 @@ const GameApp = {
                 });
         
                 GameApp.state.summarizedUntilTurnCount = endTurn;
-                localStorage.setItem('summarizedUntilTurnCount', GameApp.state.summarizedUntilTurnCount.toString());
+                // 按组合持久化总结进度
+                GameApp.logic.saveCurrentComboData();
+                GameApp.logic.saveAllCombosToStorage();
                 // 更新 summarized 标记并刷新徽章显示
                 GameApp.logic.updateSummarizedFlags();
                 if (GameApp.ui.updateSummaryBadgesFromHistory) GameApp.ui.updateSummaryBadgesFromHistory();
         
                 if (summaryText && summaryText.trim() !== "") {
                    GameApp.state.accumulatedSummaryContent += (GameApp.state.accumulatedSummaryContent ? "\n\n" : "") + summaryText;
-                   localStorage.setItem('accumulatedSummaryContent', GameApp.state.accumulatedSummaryContent);
+                   // 按组合持久化总结内容
+                   GameApp.logic.saveCurrentComboData();
+                   GameApp.logic.saveAllCombosToStorage();
                    GameApp.ui.updateSummaryContentDisplay(GameApp.state.accumulatedSummaryContent);
                    GameApp.ui.showSystemMessage({ text: `第 ${startTurn + 1} 至 ${endTurn} 层的内容已成功总结并更新。`, type: "system-message summary-notification" });
                 } else {
